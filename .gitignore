@@ -29,3 +29,9 @@ test/**/next-env.d.ts
 
 build
 .turbo
+
+# Environment variables
+.env.local
+
+# Generated manifest (use manifest.template.json as source)
+manifest.json

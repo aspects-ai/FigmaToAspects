@@ -6,6 +6,7 @@
     "build": "turbo run build",
     "build:watch": "turbo run build:watch",
     "dev": "turbo run dev --concurrency 20",
+    "dev:plugin": "node scripts/inject-dev-domains.js && cd apps/plugin && pnpm dev:config",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,css,md}\""
   },

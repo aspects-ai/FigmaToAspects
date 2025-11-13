@@ -14,7 +14,14 @@ import { flutterCodeGenTextStyles } from "backend/src/flutter/flutterMain";
 import { htmlCodeGenTextStyles } from "backend/src/html/htmlMain";
 import { swiftUICodeGenTextStyles } from "backend/src/swiftui/swiftuiMain";
 import { composeCodeGenTextStyles } from "backend/src/compose/composeMain";
-import { PluginSettings, SettingWillChangeMessage } from "types";
+import {
+  PluginSettings,
+  SettingWillChangeMessage,
+  ConfigureImageUploadMessage,
+  AspectsBackendConfig,
+} from "types";
+import { imageUploadService } from "backend/src/common/imageUploadService";
+import { AspectsBackendClient } from "backend/src/common/aspectsBackendClient";
 
 let userPluginSettings: PluginSettings;
 
@@ -30,7 +37,7 @@ export const defaultPluginSettings: PluginSettings = {
   roundTailwindColors: true,
   useColorVariables: true,
   customTailwindPrefix: "",
-  embedImages: false,
+  imageUploadMode: "placeholder",
   embedVectors: false,
   htmlGenerationMode: "html",
   tailwindGenerationMode: "jsx",
@@ -46,13 +53,8 @@ function isKeyOfPluginSettings(key: string): key is keyof PluginSettings {
 }
 
 const getUserSettings = async () => {
-  console.log("[DEBUG] getUserSettings - Starting to fetch user settings");
   const possiblePluginSrcSettings =
     (await figma.clientStorage.getAsync("userPluginSettings")) ?? {};
-  console.log(
-    "[DEBUG] getUserSettings - Raw settings from storage:",
-    possiblePluginSrcSettings,
-  );
 
   const updatedPluginSrcSettings = {
     ...defaultPluginSettings,
@@ -70,40 +72,27 @@ const getUserSettings = async () => {
   };
 
   userPluginSettings = updatedPluginSrcSettings as PluginSettings;
-  console.log("[DEBUG] getUserSettings - Final settings:", userPluginSettings);
   return userPluginSettings;
 };
 
 const initSettings = async () => {
-  console.log("[DEBUG] initSettings - Initializing plugin settings");
   await getUserSettings();
   postSettingsChanged(userPluginSettings);
-  console.log("[DEBUG] initSettings - Settings loaded, waiting for user action");
   // Removed auto-run - user must click Preview or Export
 };
 
 // Used to prevent running from happening again.
 let isLoading = false;
 const safeRun = async (settings: PluginSettings) => {
-  console.log(
-    "[DEBUG] safeRun - Called with isLoading =",
-    isLoading,
-    "selection =",
-    figma.currentPage.selection,
-  );
   if (isLoading === false) {
     try {
       isLoading = true;
-      console.log("[DEBUG] safeRun - Starting run execution");
       await run(settings);
-      console.log("[DEBUG] safeRun - Run execution completed");
       // hack to make it not immediately set to false when complete. (executes on next frame)
       setTimeout(() => {
-        console.log("[DEBUG] safeRun - Resetting isLoading to false");
         isLoading = false;
       }, 1);
     } catch (e) {
-      console.log("[DEBUG] safeRun - Error caught in execution");
       isLoading = false; // Make sure to reset the flag on error
       if (e && typeof e === "object" && "message" in e) {
         const error = e as Error;
@@ -122,18 +111,31 @@ const safeRun = async (settings: PluginSettings) => {
       // Send a message to reset the UI state
       figma.ui.postMessage({ type: "conversion-complete", success: false });
     }
-  } else {
-    console.log(
-      "[DEBUG] safeRun - Skipping execution because isLoading =",
-      isLoading,
-    );
+  }
+};
+
+// Development configuration: These will be replaced at build time by esbuild --define
+declare const DEV_BACKEND_URL: string | undefined;
+declare const DEV_AUTH_TOKEN: string | undefined;
+
+// Development helper: Auto-configure image upload from build-time constants
+const configureImageUploadFromDevSettings = () => {
+  // Check if build-time dev constants are defined
+  if (typeof DEV_BACKEND_URL !== 'undefined' && typeof DEV_AUTH_TOKEN !== 'undefined') {
+    const client = new AspectsBackendClient({
+      baseUrl: DEV_BACKEND_URL,
+      getAuthToken: DEV_AUTH_TOKEN,
+    });
+    imageUploadService.configure(client);
   }
 };
 
 const standardMode = async () => {
-  console.log("[DEBUG] standardMode - Starting standard mode initialization");
   figma.showUI(__html__, { width: 450, height: 700, themeColors: true });
   await initSettings();
+
+  // Auto-configure image upload if dev config is set at build time
+  configureImageUploadFromDevSettings();
 
   // Send initial selection state to UI
   const initialSelection = figma.currentPage.selection.length > 0;
@@ -145,7 +147,6 @@ const standardMode = async () => {
   // Track selection changes but don't auto-convert
   figma.on("selectionchange", () => {
     const hasSelection = figma.currentPage.selection.length > 0;
-    console.log("[DEBUG] selectionchange - hasSelection:", hasSelection);
     figma.ui.postMessage({
       type: "selection-state",
       hasSelection: hasSelection,
@@ -155,22 +156,23 @@ const standardMode = async () => {
   // Removed documentchange listener - no longer needed without auto-conversion
 
   figma.ui.onmessage = async (msg) => {
-    console.log("[DEBUG] figma.ui.onmessage", msg);
+    if (msg.type === "configure-image-upload") {
+      const { config } = msg as ConfigureImageUploadMessage;
+      const client = new AspectsBackendClient(config);
 
-    if (msg.type === "pluginSettingWillChange") {
+      imageUploadService.configure(client);
+    } else if (msg.type === "pluginSettingWillChange") {
       const { key, value } = msg as SettingWillChangeMessage<unknown>;
-      console.log(`[DEBUG] Setting changed: ${key} = ${value}`);
       (userPluginSettings as any)[key] = value;
       figma.clientStorage.setAsync("userPluginSettings", userPluginSettings);
+      // Send updated settings back to UI
+      postSettingsChanged(userPluginSettings);
       // Removed auto-run on settings change
     } else if (msg.type === "preview-requested") {
-      console.log("[DEBUG] Preview requested by user");
       await safeRun(userPluginSettings);
     } else if (msg.type === "export-requested") {
-      console.log("[DEBUG] Export requested by user");
       await safeRun(userPluginSettings);
     } else if (msg.type === "get-selection-json") {
-      console.log("[DEBUG] get-selection-json message received");
 
       const nodes = figma.currentPage.selection;
       if (nodes.length === 0) {
@@ -219,8 +221,6 @@ const standardMode = async () => {
 
       const nodeJson = result;
 
-      console.log("[DEBUG] Exported node JSON:", nodeJson);
-
       // Send the JSON data back to the UI
       figma.ui.postMessage({
         type: "selection-json",
@@ -231,23 +231,13 @@ const standardMode = async () => {
 };
 
 const codegenMode = async () => {
-  console.log("[DEBUG] codegenMode - Starting codegen mode initialization");
   // figma.showUI(__html__, { visible: false });
   await getUserSettings();
 
   figma.codegen.on(
     "generate",
     async ({ language, node }: CodegenEvent): Promise<CodegenResult[]> => {
-      console.log(
-        `[DEBUG] codegen.generate - Language: ${language}, Node:`,
-        node,
-      );
-
       const convertedSelection = await nodesToJSON([node], userPluginSettings);
-      console.log(
-        "[DEBUG] codegen.generate - Converted selection:",
-        convertedSelection,
-      );
 
       switch (language) {
         case "html":
@@ -432,14 +422,11 @@ const codegenMode = async () => {
 switch (figma.mode) {
   case "default":
   case "inspect":
-    console.log("[DEBUG] Starting plugin in", figma.mode, "mode");
     standardMode();
     break;
   case "codegen":
-    console.log("[DEBUG] Starting plugin in codegen mode");
     codegenMode();
     break;
   default:
-    console.log("[DEBUG] Unknown plugin mode:", figma.mode);
     break;
 }

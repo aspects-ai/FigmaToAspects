@@ -20,15 +20,6 @@ export const preferenceOptions: LocalCodegenPreferenceOptions[] = [
   },
   {
     itemType: "individual_select",
-    propertyName: "embedImages",
-    label: "Embed Images",
-    description:
-      "Convert Figma images to Base64 and embed them in the code. This may be slow. If there are too many images, it could freeze Figma.",
-    isDefault: false,
-    includedLanguages: ["HTML"],
-  },
-  {
-    itemType: "individual_select",
     propertyName: "embedVectors",
     label: "Embed Vectors",
     description:
@@ -38,5 +29,15 @@ export const preferenceOptions: LocalCodegenPreferenceOptions[] = [
   },
 ];
 
-// Removed all select preference options - only supporting raw HTML export
-export const selectPreferenceOptions: SelectPreferenceOptions[] = [];
+export const selectPreferenceOptions: SelectPreferenceOptions[] = [
+  {
+    itemType: "select",
+    propertyName: "imageUploadMode",
+    label: "Image Handling",
+    options: [
+      { label: "Upload to Storage", value: "upload" },
+      { label: "Use Placeholders", value: "placeholder", isDefault: true },
+    ],
+    includedLanguages: ["HTML"],
+  },
+];

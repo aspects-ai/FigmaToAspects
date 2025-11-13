@@ -86,6 +86,7 @@ export default function App() {
           break;
 
         case "pluginSettingChanged":
+        case "pluginSettingsChanged":
           const settingsMessage = untypedMessage as SettingsChangedMessage;
           setState((prevState) => ({
             ...prevState,

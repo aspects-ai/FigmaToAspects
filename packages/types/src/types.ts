@@ -1,9 +1,57 @@
 import "@figma/plugin-typings";
 // Settings
 export type Framework = "Flutter" | "SwiftUI" | "HTML" | "Tailwind" | "Compose";
+
+// Image Upload Types
+export interface ImageUploadRequest {
+  nodeId: string;
+  nodeName: string;
+  width: number;
+  height: number;
+  format: 'PNG';
+  timestamp: number;
+}
+
+export interface ImageUploadUrlResponse {
+  /**
+   * Pre-signed URL for uploading the image (PUT request)
+   */
+  uploadUrl: string;
+
+  /**
+   * Public URL for referencing the image in generated code
+   */
+  publicUrl: string;
+
+  /**
+   * Optional backend-provided metadata
+   */
+  metadata?: {
+    expiresAt?: number;
+    blobName?: string;
+  };
+}
+
+export interface AspectsBackendConfig {
+  /**
+   * Base URL of the Aspects backend
+   */
+  baseUrl: string;
+
+  /**
+   * Bearer token for authentication (can be a function for dynamic tokens)
+   */
+  getAuthToken: (() => Promise<string>) | (() => string) | string;
+
+  /**
+   * Optional custom headers to include in requests
+   */
+  headers?: Record<string, string>;
+}
+
 export interface HTMLSettings {
   showLayerNames: boolean;
-  embedImages: boolean;
+  imageUploadMode: 'upload' | 'placeholder';
   embedVectors: boolean;
   useColorVariables: boolean;
   htmlGenerationMode: "html" | "jsx" | "styled-components" | "svelte";
@@ -81,6 +129,10 @@ export type ExportRequestMessage = Message & { type: "export-requested" };
 export type SelectionStateMessage = Message & {
   type: "selection-state";
   hasSelection: boolean;
+};
+export type ConfigureImageUploadMessage = Message & {
+  type: "configure-image-upload";
+  config: AspectsBackendConfig;
 };
 
 // Nodes

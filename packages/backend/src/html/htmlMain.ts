@@ -12,12 +12,9 @@ import {
 } from "types";
 import { renderAndAttachSVG } from "../altNodes/altNodeUtils";
 import { getVisibleNodes } from "../common/nodeVisibility";
-import {
-  exportNodeAsBase64PNG,
-  getPlaceholderImage,
-  nodeHasImageFill,
-} from "../common/images";
+import { getPlaceholderImage, nodeHasImageFill } from "../common/images";
 import { addWarning } from "../common/commonConversionWarnings";
+import { imageUploadService } from "../common/imageUploadService";
 
 const selfClosingTags = ["img"];
 
@@ -628,12 +625,11 @@ const htmlContainer = async (
       const hasChildren = "children" in node && node.children.length > 0;
       let imgUrl = "";
 
-      if (
-        settings.embedImages &&
-        (settings as PluginSettings).framework === "HTML"
-      ) {
-        imgUrl = (await exportNodeAsBase64PNG(altNode, hasChildren)) ?? "";
+      if (settings.imageUploadMode === "upload") {
+        // Upload to external storage (Azure)
+        imgUrl = await imageUploadService.uploadNodeImage(altNode, hasChildren);
       } else {
+        // Use placeholder
         imgUrl = getPlaceholderImage(node.width, node.height);
         console.log("imgUrl", imgUrl);
       }
