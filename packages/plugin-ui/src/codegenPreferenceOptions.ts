@@ -35,8 +35,8 @@ export const selectPreferenceOptions: SelectPreferenceOptions[] = [
     propertyName: "imageUploadMode",
     label: "Image Handling",
     options: [
-      { label: "Upload to Storage", value: "upload" },
-      { label: "Use Placeholders", value: "placeholder", isDefault: true },
+      { label: "Embed Images", value: "upload", isDefault: true },
+      { label: "Use Image Placeholders", value: "placeholder" },
     ],
     includedLanguages: ["HTML"],
   },

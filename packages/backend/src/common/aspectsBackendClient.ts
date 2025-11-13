@@ -19,15 +19,21 @@ export class AspectsBackendClient {
   ): Promise<ImageUploadUrlResponse> {
     const authToken = await this.getAuthToken();
 
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...this.config.headers,
+    };
+
+    // Only include Authorization header if token is available
+    if (authToken) {
+      headers.Authorization = `Bearer ${authToken}`;
+    }
+
     const response = await fetch(
       `${this.config.baseUrl}/api/figma/imageUploadUrl`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-          "Content-Type": "application/json",
-          ...this.config.headers,
-        },
+        headers,
         body: JSON.stringify(request),
       },
     );
@@ -63,9 +69,14 @@ export class AspectsBackendClient {
 
   /**
    * Helper to get auth token (handles string or function)
+   * Returns null if no token is configured (for anonymous uploads)
    */
-  private async getAuthToken(): Promise<string> {
+  private async getAuthToken(): Promise<string | null> {
     const token = this.config.getAuthToken;
+
+    if (!token) {
+      return null;
+    }
 
     if (typeof token === "string") {
       return token;
@@ -77,6 +88,6 @@ export class AspectsBackendClient {
   }
 
   isConfigured(): boolean {
-    return !!(this.config.baseUrl && this.config.getAuthToken);
+    return !!this.config.baseUrl;
   }
 }

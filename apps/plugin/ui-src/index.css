@@ -4,6 +4,31 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ===== LOCAL FONTS ===== */
+@font-face {
+  font-family: 'Manrope';
+  src: url('../../../assets/Manrope-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('../../../assets/IBMPlexSans-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pragmatica Extended';
+  src: url('../../../assets/PragmaticaExtendedBook.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* ===== ASPECTS BRAND - CORE COLOR PALETTE ===== */
   --color-brand: oklch(60.76% 0.1561 305.32);        /* Amethyst - Primary brand */

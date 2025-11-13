@@ -1,5 +1,4 @@
 import copy from "copy-to-clipboard";
-import Preview from "./components/Preview";
 import GradientsPanel from "./components/GradientsPanel";
 import ColorsPanel from "./components/ColorsPanel";
 import CodePanel from "./components/CodePanel";
@@ -89,24 +88,9 @@ export const PluginUI = (props: PluginUIProps) => {
       ></div>
       <div className="flex flex-col h-full overflow-y-auto">
         {showAbout ? (
-          <About
-            useOldPluginVersion={props.settings?.useOldPluginVersion2025}
-            onPreferenceChanged={props.onPreferenceChanged}
-          />
+          <About />
         ) : (
           <div className="flex flex-col items-center px-4 py-2 gap-2 dark:bg-transparent">
-            {isEmpty === false && props.htmlPreview && (
-              <Preview
-                htmlPreview={props.htmlPreview}
-                expanded={previewExpanded}
-                setExpanded={setPreviewExpanded}
-                viewMode={previewViewMode}
-                setViewMode={setPreviewViewMode}
-                bgColor={previewBgColor}
-                setBgColor={setPreviewBgColor}
-              />
-            )}
-
             {isDevelopment && warnings.length > 0 && <WarningsPanel warnings={warnings} />}
 
             <CodePanel
@@ -121,6 +105,13 @@ export const PluginUI = (props: PluginUIProps) => {
               onExportRequest={props.onExportRequest}
               isLoading={props.isLoading}
               isExporting={props.isExporting}
+              htmlPreview={props.htmlPreview}
+              previewExpanded={previewExpanded}
+              setPreviewExpanded={setPreviewExpanded}
+              previewViewMode={previewViewMode}
+              setPreviewViewMode={setPreviewViewMode}
+              previewBgColor={previewBgColor}
+              setBgColor={setPreviewBgColor}
             />
 
             {props.colors.length > 0 && (

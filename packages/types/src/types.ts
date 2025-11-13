@@ -40,8 +40,9 @@ export interface AspectsBackendConfig {
 
   /**
    * Bearer token for authentication (can be a function for dynamic tokens)
+   * Optional - if not provided, requests will be unauthenticated for preview/anonymous uploads
    */
-  getAuthToken: (() => Promise<string>) | (() => string) | string;
+  getAuthToken?: (() => Promise<string>) | (() => string) | string;
 
   /**
    * Optional custom headers to include in requests

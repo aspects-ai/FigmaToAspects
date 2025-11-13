@@ -1,5 +1,6 @@
 import {
   Framework,
+  HTMLPreview,
   LocalCodegenPreferenceOptions,
   PluginSettings,
   SelectPreferenceOptions,
@@ -9,7 +10,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { coldarkDark as theme } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { PreviewButton } from "./PreviewButton";
 import { ExportButton } from "./ExportButton";
-import EmptyState from "./EmptyState";
+import Preview from "./Preview";
 import SettingsGroup from "./SettingsGroup";
 import FrameworkTabs from "./FrameworkTabs";
 import { TailwindSettings } from "./TailwindSettings";
@@ -29,6 +30,13 @@ interface CodePanelProps {
   onExportRequest: () => void;
   isLoading: boolean;
   isExporting: boolean;
+  htmlPreview: HTMLPreview;
+  previewExpanded: boolean;
+  setPreviewExpanded: (expanded: boolean) => void;
+  previewViewMode: "desktop" | "mobile" | "precision";
+  setPreviewViewMode: (mode: "desktop" | "mobile" | "precision") => void;
+  previewBgColor: "white" | "black";
+  setPreviewBgColor: (color: "white" | "black") => void;
 }
 
 const CodePanel = (props: CodePanelProps) => {
@@ -47,6 +55,13 @@ const CodePanel = (props: CodePanelProps) => {
     onExportRequest,
     isLoading,
     isExporting,
+    htmlPreview,
+    previewExpanded,
+    setPreviewExpanded,
+    previewViewMode,
+    setPreviewViewMode,
+    previewBgColor,
+    setPreviewBgColor,
   } = props;
   const isCodeEmpty = code === "";
 
@@ -178,7 +193,7 @@ const CodePanel = (props: CodePanelProps) => {
         {selectableSettingsFiltered.length > 0 && (
           <div className="mt-1 mb-2 last:mb-0">
             <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-              {selectedFramework} Options
+              Export Options
             </p>
             {selectableSettingsFiltered.map((preference) => {
               // Regular toggle buttons for other options
@@ -219,10 +234,16 @@ const CodePanel = (props: CodePanelProps) => {
         )}
       </div>
 
-      {isCodeEmpty && (
-        <div className="rounded-lg">
-          <EmptyState />
-        </div>
+      {isCodeEmpty === false && htmlPreview && (
+        <Preview
+          htmlPreview={htmlPreview}
+          expanded={previewExpanded}
+          setExpanded={setPreviewExpanded}
+          viewMode={previewViewMode}
+          setViewMode={setPreviewViewMode}
+          bgColor={previewBgColor}
+          setBgColor={setPreviewBgColor}
+        />
       )}
 
       {/* Code preview section removed - hidden from UI */}
