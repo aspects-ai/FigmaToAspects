@@ -76,6 +76,12 @@ export type ErrorMessage = Message & {
   type: "error";
   error: string;
 };
+export type PreviewRequestMessage = Message & { type: "preview-requested" };
+export type ExportRequestMessage = Message & { type: "export-requested" };
+export type SelectionStateMessage = Message & {
+  type: "selection-state";
+  hasSelection: boolean;
+};
 
 // Nodes
 export type ParentNode = BaseNode & ChildrenMixin;

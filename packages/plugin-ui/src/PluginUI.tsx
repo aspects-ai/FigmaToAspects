@@ -36,45 +36,10 @@ type PluginUIProps = {
   colors: SolidColorConversion[];
   gradients: LinearGradientConversion[];
   isLoading: boolean;
-};
-
-const frameworks: Framework[] = ["HTML", "Tailwind", "Flutter", "SwiftUI"];
-
-type FrameworkTabsProps = {
-  frameworks: Framework[];
-  selectedFramework: Framework;
-  setSelectedFramework: (framework: Framework) => void;
-  showAbout: boolean;
-  setShowAbout: (show: boolean) => void;
-};
-
-const FrameworkTabs = ({
-  frameworks,
-  selectedFramework,
-  setSelectedFramework,
-  showAbout,
-  setShowAbout,
-}: FrameworkTabsProps) => {
-  return (
-    <div className="grid grid-cols-4 sm:grid-cols-2 md:grid-cols-4 gap-1 grow">
-      {frameworks.map((tab) => (
-        <button
-          key={`tab ${tab}`}
-          className={`w-full text-sm rounded-md transition-colors font-medium ${
-            selectedFramework === tab && !showAbout
-              ? "bg-primary text-primary-foreground shadow-xs"
-              : "bg-muted hover:bg-primary/90 hover:text-primary-foreground"
-          }`}
-          onClick={() => {
-            setSelectedFramework(tab as Framework);
-            setShowAbout(false);
-          }}
-        >
-          {tab}
-        </button>
-      ))}
-    </div>
-  );
+  hasSelection: boolean;
+  onPreviewRequest: () => void;
+  onExportRequest: () => void;
+  isExporting: boolean;
 };
 
 export const PluginUI = (props: PluginUIProps) => {
@@ -93,17 +58,14 @@ export const PluginUI = (props: PluginUIProps) => {
   const isEmpty = props.code === "";
   const warnings = props.warnings ?? [];
 
+  // Check if we're in development mode (show warnings)
+  const isDevelopment = props.settings?.useOldPluginVersion2025 === true;
+
   return (
     <div className="flex flex-col h-full dark:text-white">
       <div className="p-2 dark:bg-card">
-        <div className="flex gap-1 bg-muted dark:bg-card rounded-lg p-1">
-          <FrameworkTabs
-            frameworks={frameworks}
-            selectedFramework={props.selectedFramework}
-            setSelectedFramework={props.setSelectedFramework}
-            showAbout={showAbout}
-            setShowAbout={setShowAbout}
-          />
+        <div className="flex justify-between items-center bg-muted dark:bg-card rounded-lg p-2">
+          <h1 className="text-lg font-semibold text-foreground">Figma to HTML</h1>
           <button
             className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-medium ${
               showAbout
@@ -144,7 +106,7 @@ export const PluginUI = (props: PluginUIProps) => {
               />
             )}
 
-            {warnings.length > 0 && <WarningsPanel warnings={warnings} />}
+            {isDevelopment && warnings.length > 0 && <WarningsPanel warnings={warnings} />}
 
             <CodePanel
               code={props.code}
@@ -153,6 +115,11 @@ export const PluginUI = (props: PluginUIProps) => {
               selectPreferenceOptions={selectPreferenceOptions}
               settings={props.settings}
               onPreferenceChanged={props.onPreferenceChanged}
+              hasSelection={props.hasSelection}
+              onPreviewRequest={props.onPreviewRequest}
+              onExportRequest={props.onExportRequest}
+              isLoading={props.isLoading}
+              isExporting={props.isExporting}
             />
 
             {props.colors.length > 0 && (

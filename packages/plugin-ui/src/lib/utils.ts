@@ -40,3 +40,33 @@ export function replaceExternalImagesWithCanvas(html: string): string {
     }
   );
 }
+
+/**
+ * Triggers a file download in the browser
+ */
+export function downloadFile(
+  content: string,
+  filename: string,
+  mimeType: string = "text/html"
+): void {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Generates a timestamped filename for HTML exports
+ */
+export function generateHtmlFilename(): string {
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[:.]/g, "-")
+    .slice(0, 19); // YYYY-MM-DDTHH-MM-SS
+  return `figma-export-${timestamp}.html`;
+}

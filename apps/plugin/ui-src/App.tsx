@@ -1,24 +1,27 @@
-import { useEffect, useState } from "react";
+import copy from "copy-to-clipboard";
 import { PluginUI } from "plugin-ui";
+import { downloadFile, generateHtmlFilename } from "plugin-ui/src/lib/utils";
+import { useEffect, useState } from "react";
 import {
-  Framework,
-  PluginSettings,
   ConversionMessage,
-  Message,
+  ErrorMessage,
+  Framework,
   HTMLPreview,
   LinearGradientConversion,
-  SolidColorConversion,
-  ErrorMessage,
+  Message,
+  PluginSettings,
   SettingsChangedMessage,
+  SolidColorConversion,
   Warning,
 } from "types";
-import { postUISettingsChangingMessage } from "./messaging";
-import copy from "copy-to-clipboard";
+import { postExportRequest, postPreviewRequest, postUISettingsChangingMessage } from "./messaging";
 
 interface AppState {
   code: string;
   selectedFramework: Framework;
   isLoading: boolean;
+  isExporting: boolean;
+  hasSelection: boolean;
   htmlPreview: HTMLPreview;
   settings: PluginSettings | null;
   colors: SolidColorConversion[];
@@ -33,6 +36,8 @@ export default function App() {
     code: "",
     selectedFramework: "HTML",
     isLoading: false,
+    isExporting: false,
+    hasSelection: false,
     htmlPreview: emptyPreview,
     settings: null,
     colors: [],
@@ -61,12 +66,23 @@ export default function App() {
 
         case "code":
           const conversionMessage = untypedMessage as ConversionMessage;
-          setState((prevState) => ({
-            ...prevState,
-            ...conversionMessage,
-            selectedFramework: conversionMessage.settings.framework,
-            isLoading: false,
-          }));
+          setState((prevState) => {
+            const newState = {
+              ...prevState,
+              ...conversionMessage,
+              selectedFramework: conversionMessage.settings.framework,
+              isLoading: false,
+            };
+
+            // If this was an export request, trigger download
+            if (prevState.isExporting) {
+              const filename = generateHtmlFilename();
+              downloadFile(conversionMessage.code, filename, "text/html");
+              newState.isExporting = false;
+            }
+
+            return newState;
+          });
           break;
 
         case "pluginSettingChanged":
@@ -88,6 +104,15 @@ export default function App() {
             colors: [],
             gradients: [],
             isLoading: false,
+            hasSelection: false,
+          }));
+          break;
+
+        case "selection-state":
+          const selectionMessage = untypedMessage as any;
+          setState((prevState) => ({
+            ...prevState,
+            hasSelection: selectionMessage.hasSelection,
           }));
           break;
 
@@ -140,6 +165,20 @@ export default function App() {
     }
   };
 
+  const handlePreview = () => {
+    console.log("[ui] Preview requested");
+    postPreviewRequest({ targetOrigin: "*" });
+  };
+
+  const handleExport = () => {
+    console.log("[ui] Export requested");
+    setState((prevState) => ({
+      ...prevState,
+      isExporting: true,
+    }));
+    postExportRequest({ targetOrigin: "*" });
+  };
+
   const darkMode = figmaColorBgValue !== "#ffffff";
 
   return (
@@ -155,6 +194,10 @@ export default function App() {
         settings={state.settings}
         colors={state.colors}
         gradients={state.gradients}
+        hasSelection={state.hasSelection}
+        onPreviewRequest={handlePreview}
+        onExportRequest={handleExport}
+        isExporting={state.isExporting}
       />
     </div>
   );

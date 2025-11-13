@@ -23,3 +23,17 @@ export const postUISettingsChangingMessage = <T>(
   };
   postUIMessage(message, options);
 };
+
+export const postPreviewRequest = (options?: WindowPostMessageOptions) => {
+  const message: Message = {
+    type: "preview-requested",
+  };
+  postUIMessage(message, options);
+};
+
+export const postExportRequest = (options?: WindowPostMessageOptions) => {
+  const message: Message = {
+    type: "export-requested",
+  };
+  postUIMessage(message, options);
+};

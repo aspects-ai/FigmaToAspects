@@ -347,9 +347,26 @@ export const htmlMain = async (
     if (mode === "svelte" && Object.keys(cssCollection).length > 0) {
       // CSS is already included in the Svelte component
     }
-  } else if (Object.keys(cssCollection).length > 0) {
-    // For plain HTML with CSS, include CSS separately
-    output.css = getCollectedCSS();
+  } else {
+    // For plain HTML mode, concatenate CSS into a complete HTML document
+    const hasCss = Object.keys(cssCollection).length > 0;
+    const cssContent = hasCss ? getCollectedCSS() : "";
+
+    output.html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Figma Export</title>${hasCss ? `
+  <style>
+${cssContent}
+  </style>` : ""}
+</head>
+<body>
+${htmlContent}
+</body>
+</html>`;
+    // Don't set output.css - everything is in output.html now
   }
 
   return output;

@@ -1,5 +1,5 @@
 import React from "react";
-import { Code, MousePointer, Eye, Copy } from "lucide-react";
+import { Code, MousePointer, Download } from "lucide-react";
 
 const EmptyState = () => {
   return (
@@ -27,13 +27,13 @@ const EmptyState = () => {
 
       {/* Title and hint */}
       <h3 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-2">
-        No Layer Selected
+        No Code Generated
       </h3>
       <p className="text-neutral-500 dark:text-neutral-400 max-w-xs mb-8">
-        Select a layer from your Figma design to view the generated code.
+        Select a layer and click Preview or Export to generate code.
       </p>
 
-      {/* Completely redesigned steps section */}
+      {/* Simplified steps section */}
       <div className="w-full max-w-xs">
         <div className="relative">
           {/* Progress bar */}
@@ -62,29 +62,14 @@ const EmptyState = () => {
             {/* Step 2 */}
             <li className="flex flex-col items-center">
               <div className="z-10 flex items-center justify-center w-8 h-8 bg-white dark:bg-neutral-800 border-2 border-neutral-300 dark:border-neutral-600 rounded-full text-neutral-400 dark:text-neutral-500">
-                <Eye size={15} />
+                <Download size={15} />
               </div>
               <div className="mt-3 text-center">
                 <div className="font-medium text-sm text-neutral-600 dark:text-neutral-400">
-                  View
+                  Export
                 </div>
                 <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                  See the code
-                </p>
-              </div>
-            </li>
-
-            {/* Step 3 */}
-            <li className="flex flex-col items-center">
-              <div className="z-10 flex items-center justify-center w-8 h-8 bg-white dark:bg-neutral-800 border-2 border-neutral-300 dark:border-neutral-600 rounded-full text-neutral-400 dark:text-neutral-500">
-                <Copy size={15} />
-              </div>
-              <div className="mt-3 text-center">
-                <div className="font-medium text-sm text-neutral-600 dark:text-neutral-400">
-                  Copy
-                </div>
-                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                  Use anywhere
+                  Download HTML
                 </p>
               </div>
             </li>

@@ -7,7 +7,8 @@ import {
 import { useMemo, useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { coldarkDark as theme } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { CopyButton } from "./CopyButton";
+import { PreviewButton } from "./PreviewButton";
+import { ExportButton } from "./ExportButton";
 import EmptyState from "./EmptyState";
 import SettingsGroup from "./SettingsGroup";
 import FrameworkTabs from "./FrameworkTabs";
@@ -23,6 +24,11 @@ interface CodePanelProps {
     key: keyof PluginSettings,
     value: boolean | string | number,
   ) => void;
+  hasSelection: boolean;
+  onPreviewRequest: () => void;
+  onExportRequest: () => void;
+  isLoading: boolean;
+  isExporting: boolean;
 }
 
 const CodePanel = (props: CodePanelProps) => {
@@ -36,6 +42,11 @@ const CodePanel = (props: CodePanelProps) => {
     selectedFramework,
     settings,
     onPreferenceChanged,
+    hasSelection,
+    onPreviewRequest,
+    onExportRequest,
+    isLoading,
+    isExporting,
   } = props;
   const isCodeEmpty = code === "";
 
@@ -136,82 +147,87 @@ const CodePanel = (props: CodePanelProps) => {
     <div className="w-full flex flex-col gap-2 mt-2">
       <div className="flex items-center justify-between w-full">
         <p className="text-lg font-medium text-center dark:text-white rounded-lg">
-          Code
+          Actions
         </p>
-        {!isCodeEmpty && (
-          <CopyButton
-            value={prefixedCode}
-            onMouseEnter={handleButtonHover}
-            onMouseLeave={handleButtonLeave}
+        <div className="flex gap-2">
+          <PreviewButton
+            onPreview={onPreviewRequest}
+            isLoading={isLoading}
+            disabled={!hasSelection}
           />
+          <ExportButton
+            onExport={onExportRequest}
+            isLoading={isLoading}
+            disabled={!hasSelection}
+            showSuccess={isExporting}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col p-3 bg-card border rounded-lg text-sm">
+        {/* Essential settings always shown */}
+        <SettingsGroup
+          title=""
+          settings={essentialPreferences}
+          alwaysExpanded={true}
+          selectedSettings={settings}
+          onPreferenceChanged={onPreferenceChanged}
+        />
+
+        {/* Framework-specific options */}
+        {selectableSettingsFiltered.length > 0 && (
+          <div className="mt-1 mb-2 last:mb-0">
+            <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+              {selectedFramework} Options
+            </p>
+            {selectableSettingsFiltered.map((preference) => {
+              // Regular toggle buttons for other options
+              return (
+                <FrameworkTabs
+                  options={preference.options}
+                  selectedValue={
+                    (settings?.[preference.propertyName] ??
+                      preference.options.find((option) => option.isDefault)
+                        ?.value ??
+                      "") as string
+                  }
+                  onChange={(value) => {
+                    onPreferenceChanged(preference.propertyName, value);
+                  }}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* Styling preferences with custom prefix for Tailwind */}
+        {(stylingPreferences.length > 0 ||
+          selectedFramework === "Tailwind") && (
+          <SettingsGroup
+            title="Styling Options"
+            settings={stylingPreferences}
+            selectedSettings={settings}
+            onPreferenceChanged={onPreferenceChanged}
+          >
+            {selectedFramework === "Tailwind" && (
+              <TailwindSettings
+                settings={settings}
+                onPreferenceChanged={onPreferenceChanged}
+              />
+            )}
+          </SettingsGroup>
         )}
       </div>
 
-      {!isCodeEmpty && (
-        <div className="flex flex-col p-3 bg-card border rounded-lg text-sm">
-          {/* Essential settings always shown */}
-          <SettingsGroup
-            title=""
-            settings={essentialPreferences}
-            alwaysExpanded={true}
-            selectedSettings={settings}
-            onPreferenceChanged={onPreferenceChanged}
-          />
-
-          {/* Framework-specific options */}
-          {selectableSettingsFiltered.length > 0 && (
-            <div className="mt-1 mb-2 last:mb-0">
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                {selectedFramework} Options
-              </p>
-              {selectableSettingsFiltered.map((preference) => {
-                // Regular toggle buttons for other options
-                return (
-                  <FrameworkTabs
-                    options={preference.options}
-                    selectedValue={
-                      (settings?.[preference.propertyName] ??
-                        preference.options.find((option) => option.isDefault)
-                          ?.value ??
-                        "") as string
-                    }
-                    onChange={(value) => {
-                      onPreferenceChanged(preference.propertyName, value);
-                    }}
-                  />
-                );
-              })}
-            </div>
-          )}
-
-          {/* Styling preferences with custom prefix for Tailwind */}
-          {(stylingPreferences.length > 0 ||
-            selectedFramework === "Tailwind") && (
-            <SettingsGroup
-              title="Styling Options"
-              settings={stylingPreferences}
-              selectedSettings={settings}
-              onPreferenceChanged={onPreferenceChanged}
-            >
-              {selectedFramework === "Tailwind" && (
-                <TailwindSettings
-                  settings={settings}
-                  onPreferenceChanged={onPreferenceChanged}
-                />
-              )}
-            </SettingsGroup>
-          )}
+      {isCodeEmpty && (
+        <div className="rounded-lg">
+          <EmptyState />
         </div>
       )}
 
-      <div
-        className={`rounded-lg ring-green-600 transition-all duration-200 overflow-clip ${
-          syntaxHovered ? "ring-2" : "ring-0"
-        }`}
-      >
-        {isCodeEmpty ? (
-          <EmptyState />
-        ) : (
+      {/* Code preview section removed - hidden from UI */}
+      <div style={{ display: "none" }}>
+        {!isCodeEmpty && (
           <>
             <SyntaxHighlighter
               language={

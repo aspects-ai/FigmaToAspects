@@ -78,8 +78,8 @@ const initSettings = async () => {
   console.log("[DEBUG] initSettings - Initializing plugin settings");
   await getUserSettings();
   postSettingsChanged(userPluginSettings);
-  console.log("[DEBUG] initSettings - Calling safeRun with settings");
-  safeRun(userPluginSettings);
+  console.log("[DEBUG] initSettings - Settings loaded, waiting for user action");
+  // Removed auto-run - user must click Preview or Export
 };
 
 // Used to prevent running from happening again.
@@ -135,25 +135,24 @@ const standardMode = async () => {
   figma.showUI(__html__, { width: 450, height: 700, themeColors: true });
   await initSettings();
 
-  // Listen for selection changes
-  figma.on("selectionchange", () => {
-    console.log(
-      "[DEBUG] selectionchange event - New selection:",
-      figma.currentPage.selection,
-    );
-    safeRun(userPluginSettings);
+  // Send initial selection state to UI
+  const initialSelection = figma.currentPage.selection.length > 0;
+  figma.ui.postMessage({
+    type: "selection-state",
+    hasSelection: initialSelection,
   });
 
-  // Listen for page changes
-  figma.loadAllPagesAsync();
-  figma.on("documentchange", () => {
-    console.log("[DEBUG] documentchange event triggered");
-    // Node: This was causing an infinite load when you try to export a background image from a group that contains children.
-    // The reason for this is that the code will temporarily hide the children of the group in order to export a clean image
-    // then restores the visibility of the children. This constitutes a document change so it's restarting the whole conversion.
-    // In order to stop this, we disable safeRun() when doing conversions (while isLoading === true).
-    safeRun(userPluginSettings);
+  // Track selection changes but don't auto-convert
+  figma.on("selectionchange", () => {
+    const hasSelection = figma.currentPage.selection.length > 0;
+    console.log("[DEBUG] selectionchange - hasSelection:", hasSelection);
+    figma.ui.postMessage({
+      type: "selection-state",
+      hasSelection: hasSelection,
+    });
   });
+
+  // Removed documentchange listener - no longer needed without auto-conversion
 
   figma.ui.onmessage = async (msg) => {
     console.log("[DEBUG] figma.ui.onmessage", msg);
@@ -163,7 +162,13 @@ const standardMode = async () => {
       console.log(`[DEBUG] Setting changed: ${key} = ${value}`);
       (userPluginSettings as any)[key] = value;
       figma.clientStorage.setAsync("userPluginSettings", userPluginSettings);
-      safeRun(userPluginSettings);
+      // Removed auto-run on settings change
+    } else if (msg.type === "preview-requested") {
+      console.log("[DEBUG] Preview requested by user");
+      await safeRun(userPluginSettings);
+    } else if (msg.type === "export-requested") {
+      console.log("[DEBUG] Export requested by user");
+      await safeRun(userPluginSettings);
     } else if (msg.type === "get-selection-json") {
       console.log("[DEBUG] get-selection-json message received");
 
