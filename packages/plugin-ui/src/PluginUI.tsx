@@ -21,6 +21,7 @@ import Loading from "./components/Loading";
 import { useState } from "react";
 import { InfoIcon } from "lucide-react";
 import React from "react";
+import logoFull from "../../../assets/full_logo.svg";
 
 type PluginUIProps = {
   code: string;
@@ -65,7 +66,7 @@ export const PluginUI = (props: PluginUIProps) => {
     <div className="flex flex-col h-full dark:text-white">
       <div className="p-2 dark:bg-card">
         <div className="flex justify-between items-center bg-muted dark:bg-card rounded-lg p-2">
-          <h1 className="text-lg font-semibold text-foreground">Figma to HTML</h1>
+          <img src={logoFull} alt="Aspects" className="h-6" />
           <button
             className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-medium ${
               showAbout

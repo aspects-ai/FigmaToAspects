@@ -3,13 +3,13 @@ import { Code, MousePointer, Download } from "lucide-react";
 
 const EmptyState = () => {
   return (
-    <div className="flex flex-col items-center justify-center p-8 bg-card/50 border border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg text-center">
+    <div className="flex flex-col items-center justify-center p-8 bg-card/50 border border-dashed border-border rounded-lg text-center">
       {/* Icon with "no code" symbol */}
-      <div className="w-16 h-16 bg-linear-to-br from-neutral-100 to-neutral-200 dark:from-neutral-700 dark:to-neutral-800 rounded-full flex items-center justify-center mb-5 shadow-2xs">
+      <div className="w-16 h-16 bg-gradient-to-br from-muted to-muted/60 rounded-full flex items-center justify-center mb-5 shadow-sm">
         <div className="relative">
-          <Code size={24} className="text-neutral-500 dark:text-neutral-400" />
+          <Code size={24} className="text-muted-foreground" />
           <svg
-            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500"
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-muted-foreground/60"
             width="36"
             height="36"
             viewBox="0 0 24 24"
@@ -26,10 +26,10 @@ const EmptyState = () => {
       </div>
 
       {/* Title and hint */}
-      <h3 className="text-lg font-medium text-neutral-800 dark:text-neutral-200 mb-2">
+      <h3 className="text-lg font-medium text-foreground mb-2">
         No Code Generated
       </h3>
-      <p className="text-neutral-500 dark:text-neutral-400 max-w-xs mb-8">
+      <p className="text-muted-foreground max-w-xs mb-8">
         Select a layer and click Preview or Export to generate code.
       </p>
 
@@ -37,23 +37,23 @@ const EmptyState = () => {
       <div className="w-full max-w-xs">
         <div className="relative">
           {/* Progress bar */}
-          <div className="absolute top-4 left-0 w-full h-0.5 bg-neutral-200 dark:bg-neutral-700"></div>
+          <div className="absolute top-4 left-0 w-full h-0.5 bg-border"></div>
 
           {/* Steps with connecting line */}
           <ol className="relative flex justify-between">
             {/* Step 1 - Current */}
             <li className="flex flex-col items-center">
               <div className="relative z-10">
-                <div className="absolute -inset-1.5 rounded-full bg-green-100 dark:bg-green-900/20 animate-pulse-slow"></div>
-                <div className="relative flex items-center justify-center w-8 h-8 bg-green-500 dark:bg-green-600 rounded-full text-white">
+                <div className="absolute -inset-1.5 rounded-full bg-primary/10 animate-pulse-slow"></div>
+                <div className="relative flex items-center justify-center w-8 h-8 bg-primary rounded-full text-primary-foreground">
                   <MousePointer size={15} />
                 </div>
               </div>
               <div className="mt-3 text-center">
-                <div className="font-medium text-sm text-green-600 dark:text-green-500">
+                <div className="font-medium text-sm text-primary">
                   Select
                 </div>
-                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Choose a layer
                 </p>
               </div>
@@ -61,14 +61,14 @@ const EmptyState = () => {
 
             {/* Step 2 */}
             <li className="flex flex-col items-center">
-              <div className="z-10 flex items-center justify-center w-8 h-8 bg-white dark:bg-neutral-800 border-2 border-neutral-300 dark:border-neutral-600 rounded-full text-neutral-400 dark:text-neutral-500">
+              <div className="z-10 flex items-center justify-center w-8 h-8 bg-background border-2 border-border rounded-full text-muted-foreground">
                 <Download size={15} />
               </div>
               <div className="mt-3 text-center">
-                <div className="font-medium text-sm text-neutral-600 dark:text-neutral-400">
+                <div className="font-medium text-sm text-foreground">
                   Export
                 </div>
-                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Download HTML
                 </p>
               </div>

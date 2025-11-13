@@ -39,7 +39,7 @@ export function ExportButton({
           ? "bg-green-500 text-white"
           : disabled || isLoading
           ? "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 cursor-not-allowed"
-          : "bg-purple-500 hover:bg-purple-600 text-white",
+          : "bg-primary hover:shadow-[0_0_12px_hsl(var(--primary)/0.5)] hover:bg-primary/90 text-primary-foreground",
         className
       )}
       aria-label={

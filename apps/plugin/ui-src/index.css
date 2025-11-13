@@ -5,58 +5,91 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* ===== ASPECTS BRAND - CORE COLOR PALETTE ===== */
+  --color-brand: oklch(60.76% 0.1561 305.32);        /* Amethyst - Primary brand */
+  --color-secondary: oklch(73.88% 0.1166 194.92);    /* Cyan - Secondary */
+  --color-accent: oklch(71.16% 0.1812 22.84);        /* Coral - Accent */
+  --color-light: oklch(98.51% 0 0);                /* Seasalt - Background */
+  --color-dark: oklch(26.8% 0.0024 247.91);            /* Eerie Black - Foreground */
+  --canvas: oklch(96.17% 0.008 114.22);             /* Canvas - Secondary surface */
+
+  /* ===== DERIVED VARIATIONS ===== */
+  --color-light-darker: oklch(96% 0 0);         /* Slightly darker light */
+  --color-light-darkest: oklch(91% 0 0);        /* Much darker light */
+  --color-dark-lighter: oklch(48% 0.0024 247.91); /* Lighter dark */
+  --color-dark-lightest: oklch(77% 0.0012 247.91); /* Much lighter dark */
+  --color-dark-ultra-light: oklch(87% 0.0007 247.91); /* Ultra light dark */
+  --color-brand-darker: oklch(44% 0.1561 305.32); /* Darker brand */
+  --color-brand-darkest: oklch(36% 0.1561 305.32); /* Much darker brand */
+
+  /* ===== SHADCN REQUIRED COLORS ===== */
   --radius: 0.5rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.12 0.04 266.7);
-  --card: oklch(0.99 0 264);
-  --card-foreground: oklch(0.12 0.04 266.7);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.12 0.04 266.7);
-  --primary: oklch(0.63 0.25 161.73);
+  --background: var(--color-light);
+  --foreground: var(--color-dark);
+  --card: var(--color-light-darker);
+  --card-foreground: var(--color-dark);
+  --popover: var(--color-light);
+  --popover-foreground: var(--color-dark);
+  --primary: var(--color-brand);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.93 0.01 266.23);
-  --secondary-foreground: oklch(0.14 0.01 266.4);
-  --muted: oklch(0.97 0.0 266.23);
-  --muted-foreground: oklch(0.5 0.01 266.33);
-  --accent: oklch(0.93 0.01 266.23);
-  --accent-foreground: oklch(0.14 0.01 266.4);
+  --secondary: var(--color-secondary);
+  --secondary-foreground: oklch(1 0 0);
+  --muted: var(--color-light-darkest);
+  --muted-foreground: var(--color-dark-lighter);
+  --accent: var(--color-accent);
+  --accent-foreground: var(--color-dark);
   --destructive: oklch(0.53 0.31 24.65);
   --destructive-foreground: oklch(0.97 0 0);
-  --border: oklch(0.89 0.01 266.3);
-  --input: oklch(0.89 0.01 266.3);
-  --ring: oklch(0.14 0.01 266.4);
-  --chart-1: oklch(0.68 0.29 41.48);
-  --chart-2: oklch(0.48 0.23 154.44);
-  --chart-3: oklch(0.27 0.13 244.46);
-  --chart-4: oklch(0.72 0.31 81.39);
-  --chart-5: oklch(0.74 0.36 50.3);
+  --border: var(--color-dark-ultra-light);
+  --input: var(--color-dark-ultra-light);
+  --ring: var(--color-brand);
+
+  /* ===== CHART COLORS ===== */
+  --chart-1: var(--color-brand);
+  --chart-2: var(--color-accent);
+  --chart-3: var(--color-secondary);
+  --chart-4: var(--color-brand-darkest);
+  --chart-5: oklch(0.79 0.385 176.5);
 }
 
 .dark {
-  --background: oklch(0.12 0.04 266.7);
+  /* ===== ASPECTS BRAND - DARK MODE ===== */
+  --canvas: oklch(0.24 0.025 256);               /* Dark canvas */
+
+  /* ===== DERIVED VARIATIONS - DARK MODE ===== */
+  --color-light-darker: oklch(0.65 0 0);         /* Darker light for dark mode */
+  --color-light-darkest: oklch(0.35 0 0);        /* Much darker light for dark mode */
+  --color-dark-lighter: oklch(0.12 0.01 256);    /* Lighter dark for dark mode */
+  --color-dark-lightest: oklch(0.20 0.01 256);   /* Much lighter dark for dark mode */
+  --color-dark-ultra-light: oklch(0.25 0.01 256); /* Ultra light dark for dark mode */
+
+  /* ===== SHADCN REQUIRED COLORS - DARK MODE ===== */
+  --background: oklch(0.15 0.01 256);
   --foreground: oklch(0.97 0 0);
-  --card: oklch(0.237 0 0);
+  --card: oklch(0.20 0.01 256);
   --card-foreground: oklch(0.97 0 0);
-  --popover: oklch(0.12 0.04 266.7);
+  --popover: oklch(0.15 0.01 256);
   --popover-foreground: oklch(0.97 0 0);
-  --primary: oklch(0.63 0.25 161.73);
+  --primary: var(--color-brand);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.18 0.01 266.3);
-  --secondary-foreground: oklch(0.97 0 0);
-  --muted: oklch(0.18 0.01 266.3);
-  --muted-foreground: oklch(0.67 0.01 266.38);
-  --accent: oklch(0.18 0.01 266.3);
-  --accent-foreground: oklch(0.97 0 0);
-  --destructive: oklch(0.34 0.24 24.48);
+  --secondary: var(--color-secondary);
+  --secondary-foreground: oklch(0.15 0.01 256);
+  --muted: oklch(0.20 0.01 256);
+  --muted-foreground: oklch(0.65 0 0);
+  --accent: var(--color-accent);
+  --accent-foreground: oklch(0.15 0.01 256);
+  --destructive: oklch(0.50 0.31 24.65);
   --destructive-foreground: oklch(0.97 0 0);
-  --border: oklch(0.237 0 0);
-  --input: oklch(0.18 0.01 266.3);
-  --ring: oklch(0.82 0.01 266.4);
-  --chart-1: oklch(0.55 0.28 262.73);
-  --chart-2: oklch(0.51 0.24 150.67);
-  --chart-3: oklch(0.43 0.33 48.41);
-  --chart-4: oklch(0.61 0.26 300.96);
-  --chart-5: oklch(0.58 0.38 320.79);
+  --border: oklch(0.25 0.01 256);
+  --input: oklch(0.20 0.01 256);
+  --ring: var(--color-brand);
+
+  /* ===== CHART COLORS - DARK MODE ===== */
+  --chart-1: var(--color-brand);
+  --chart-2: var(--color-accent);
+  --chart-3: var(--color-secondary);
+  --chart-4: var(--color-brand-darkest);
+  --chart-5: oklch(0.79 0.385 176.5);
 }
 
 @theme inline {
@@ -120,6 +153,7 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    font-family: 'Manrope', system-ui, -apple-system, sans-serif;
   }
   /* body {
     @apply bg-background text-foreground;

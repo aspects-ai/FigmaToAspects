@@ -52,7 +52,7 @@ const SelectableToggle = ({
           <span
             className={cn(
               "text-sm font-medium whitespace-nowrap",
-              isSelected && "text-green-800 dark:text-foreground",
+              isSelected && "text-foreground",
             )}
           >
             {title}

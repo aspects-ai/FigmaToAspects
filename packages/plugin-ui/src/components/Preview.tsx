@@ -154,10 +154,10 @@ const Preview: React.FC<{
                 "w-full h-full flex justify-center items-center overflow-hidden",
                 bgColor === "white" ? "bg-white" : "bg-black",
                 viewMode === "desktop"
-                  ? "border border-neutral-300 dark:border-neutral-600 rounded-sm shadow-2xs"
+                  ? "border border-border rounded-sm shadow-sm"
                   : viewMode === "mobile"
-                    ? "border-2 border-neutral-400 dark:border-neutral-500 rounded-xl shadow-2xs"
-                    : "border border-indigo-400 dark:border-indigo-500 rounded-sm shadow-2xs",
+                    ? "border-2 border-border rounded-xl shadow-sm"
+                    : "border border-primary rounded-sm shadow-sm",
                 `transition-all duration-300 ease-in-out`,
               )}
             >
