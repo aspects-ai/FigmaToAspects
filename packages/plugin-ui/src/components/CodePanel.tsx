@@ -192,9 +192,17 @@ const CodePanel = (props: CodePanelProps) => {
         {/* Framework-specific options */}
         {selectableSettingsFiltered.length > 0 && (
           <div className="mt-1 mb-2 last:mb-0">
-            <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-              Export Options
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                Export Options
+              </p>
+              {!hasSelection && (
+                <p className="text-xs font-medium text-orange-600 dark:text-orange-400 flex items-center gap-1">
+                  <span>(!)</span>
+                  <span>Please Select a Frame</span>
+                </p>
+              )}
+            </div>
             {selectableSettingsFiltered.map((preference) => {
               // Regular toggle buttons for other options
               return (

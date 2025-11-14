@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Download, Check } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 import { cn } from "../lib/utils";
 
 interface ExportButtonProps {
@@ -43,7 +43,7 @@ export function ExportButton({
         className
       )}
       aria-label={
-        isLoading ? "Exporting..." : localSuccess ? "Downloaded!" : "Export"
+        isLoading ? "Exporting..." : localSuccess ? "Downloaded!" : "Animate in Aspects"
       }
     >
       <div className="relative h-4 w-4 mr-1.5">
@@ -55,7 +55,7 @@ export function ExportButton({
               : "opacity-100 scale-100"
           )}
         >
-          <Download className="h-4 w-4" />
+          <Sparkles className="h-4 w-4" />
         </span>
         <span
           className={cn(
@@ -69,7 +69,7 @@ export function ExportButton({
         </span>
       </div>
       <span className="font-medium">
-        {isLoading ? "Exporting..." : localSuccess ? "Downloaded!" : "Export"}
+        {isLoading ? "Exporting..." : localSuccess ? "Downloaded!" : "Animate in Aspects"}
       </span>
     </button>
   );

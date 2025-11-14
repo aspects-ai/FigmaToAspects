@@ -78,6 +78,9 @@ importers:
       '@figma/plugin-typings':
         specifier: ^1.114.0
         version: 1.114.0
+      auth:
+        specifier: workspace:*
+        version: link:../../packages/auth
       backend:
         specifier: workspace:*
         version: link:../../packages/backend
@@ -169,6 +172,28 @@ importers:
       vite-plugin-singlefile:
         specifier: ^2.2.0
         version: 2.2.0(rollup@4.44.1)(vite@5.4.19(@types/node@24.0.4)(lightningcss@1.30.1))
+
+  packages/auth:
+    dependencies:
+      js-sha256:
+        specifier: ^0.11.1
+        version: 0.11.1
+      types:
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@figma/plugin-typings':
+        specifier: ^1.101.0
+        version: 1.114.0
+      eslint-config-custom:
+        specifier: workspace:*
+        version: link:../eslint-config-custom
+      tsconfig:
+        specifier: workspace:*
+        version: link:../tsconfig
+      typescript:
+        specifier: ^5.0.0
+        version: 5.8.3
 
   packages/backend:
     dependencies:
@@ -2307,6 +2332,9 @@ packages:
   js-base64@3.7.7:
     resolution: {integrity: sha512-7rCnleh0z2CkXhH67J8K1Ytz0b2Y+yxTPL+/KOJoa20hfnVQ/3/T6W/KflYI4bRHRagNeXeU2bkNGI3v1oS/lw==}
 
+  js-sha256@0.11.1:
+    resolution: {integrity: sha512-o6WSo/LUvY2uC4j7mO50a2ms7E/EAdbP0swigLV+nzHKTTaYnaLIWJ02VdXrsJX0vGedDESQnLsOekr94ryfjg==}
+
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
@@ -2893,6 +2921,7 @@ packages:
   source-map@0.8.0-beta.0:
     resolution: {integrity: sha512-2ymg6oRBpebeZi9UUNsgQ89bhx01TcTkmNTGnNO88imTmbSgy4nfujrgVEFKWpMTEGA11EDkTt7mqObTPdigIA==}
     engines: {node: '>= 8'}
+    deprecated: The work that was done in this beta branch won't be included in future versions
 
   space-separated-tokens@1.1.5:
     resolution: {integrity: sha512-q/JSVd1Lptzhf5bkYm4ob4iWPjx0KiRe3sRFBNrVqbJkFaBm5vbbowy1mymoPNLRa52+oadOhJ+K49wsSeSjTA==}
@@ -5234,6 +5263,8 @@ snapshots:
   joycon@3.1.1: {}
 
   js-base64@3.7.7: {}
+
+  js-sha256@0.11.1: {}
 
   js-tokens@4.0.0: {}
 

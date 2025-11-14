@@ -19,9 +19,17 @@ import {
   SettingWillChangeMessage,
   ConfigureImageUploadMessage,
   AspectsBackendConfig,
+  AuthInitiateMessage,
+  AuthCallbackMessage,
+  LogoutMessage,
 } from "types";
 import { imageUploadService } from "backend/src/common/imageUploadService";
 import { AspectsBackendClient } from "backend/src/common/aspectsBackendClient";
+import {
+  AuthStorage,
+  AspectsOAuthClient,
+  authTokenProvider,
+} from "auth";
 
 let userPluginSettings: PluginSettings;
 
@@ -37,8 +45,8 @@ export const defaultPluginSettings: PluginSettings = {
   roundTailwindColors: true,
   useColorVariables: true,
   customTailwindPrefix: "",
-  imageUploadMode: "placeholder",
-  embedVectors: false,
+  imageUploadMode: "upload",
+  embedVectors: true,
   htmlGenerationMode: "html",
   tailwindGenerationMode: "jsx",
   baseFontSize: 16,
@@ -118,10 +126,77 @@ const safeRun = async (settings: PluginSettings) => {
 declare const DEV_BACKEND_URL: string | undefined;
 declare const DEV_AUTH_TOKEN: string | undefined;
 
+// OAuth client instance
+let oauthClient: AspectsOAuthClient;
+
+// Initialize auth system
+const initializeAuth = async () => {
+  const isDevelopment = typeof DEV_BACKEND_URL !== "undefined";
+  const webAppUrl = isDevelopment
+    ? "http://localhost:3003"
+    : "https://aspects.ai";
+  const apiUrl = isDevelopment
+    ? "http://localhost:5003"
+    : "https://api.aspects.ai";
+
+  // Initialize OAuth client
+  // Note: Figma plugins cannot use figma:// custom URI schemes
+  // The callback goes to the web app, which will display the auth code to copy
+  const redirectUri = `${webAppUrl}/oauth/callback`;
+
+  oauthClient = new AspectsOAuthClient({
+    webAppUrl,
+    apiUrl,
+    clientId: "figma_plugin_v1",
+    redirectUri,
+  });
+
+  // Configure auth token provider
+  authTokenProvider.configure(oauthClient);
+
+  // Configure backend client with auth
+  const backendClient = new AspectsBackendClient({
+    baseUrl: apiUrl,
+    getAuthToken: async () => {
+      try {
+        return await authTokenProvider.getAccessToken();
+      } catch (error) {
+        // User not authenticated, return undefined to allow unauthenticated requests
+        console.log("[auth] User not authenticated:", error);
+        return undefined;
+      }
+    },
+  });
+
+  imageUploadService.configure(backendClient);
+
+  // Check auth status and notify UI
+  const isAuth = await authTokenProvider.isAuthenticated();
+  const user = await AuthStorage.getUser();
+
+  figma.ui.postMessage({
+    type: "auth-status",
+    authState: {
+      isAuthenticated: isAuth,
+      user: user,
+    },
+  });
+
+  console.log(
+    "[auth] Auth initialized, authenticated:",
+    isAuth,
+    "user:",
+    user?.email,
+  );
+};
+
 // Development helper: Auto-configure image upload from build-time constants
 const configureImageUploadFromDevSettings = () => {
   // Check if build-time dev constants are defined
-  if (typeof DEV_BACKEND_URL !== 'undefined' && typeof DEV_AUTH_TOKEN !== 'undefined') {
+  if (
+    typeof DEV_BACKEND_URL !== "undefined" &&
+    typeof DEV_AUTH_TOKEN !== "undefined"
+  ) {
     const client = new AspectsBackendClient({
       baseUrl: DEV_BACKEND_URL,
       getAuthToken: DEV_AUTH_TOKEN,
@@ -134,7 +209,10 @@ const standardMode = async () => {
   figma.showUI(__html__, { width: 450, height: 700, themeColors: true });
   await initSettings();
 
-  // Auto-configure image upload if dev config is set at build time
+  // Initialize auth system (production)
+  await initializeAuth();
+
+  // Auto-configure image upload if dev config is set at build time (dev override)
   configureImageUploadFromDevSettings();
 
   // Send initial selection state to UI
@@ -156,7 +234,108 @@ const standardMode = async () => {
   // Removed documentchange listener - no longer needed without auto-conversion
 
   figma.ui.onmessage = async (msg) => {
-    if (msg.type === "configure-image-upload") {
+    // Auth message handlers
+    if (msg.type === "auth-initiate") {
+      try {
+        console.log("[auth] Auth initiate requested");
+
+        // PKCE parameters are now generated in the UI thread and passed here
+        const { verifier, challenge, state } = msg as AuthInitiateMessage;
+
+        // Store for later verification
+        await AuthStorage.savePKCEVerifier(verifier);
+        await AuthStorage.saveOAuthState(state);
+
+        // Build auth URL
+        const authUrl = oauthClient.buildAuthUrl(challenge, state);
+
+        console.log("[auth] Opening auth URL:", authUrl);
+
+        // Open in browser
+        figma.openExternal(authUrl);
+      } catch (error) {
+        console.error("[auth] Failed to initiate auth:", error);
+        figma.ui.postMessage({
+          type: "auth-error",
+          error:
+            error instanceof Error ? error.message : "Failed to initiate auth",
+        });
+      }
+    } else if (msg.type === "auth-callback") {
+      try {
+        const { code, state } = msg as AuthCallbackMessage;
+        console.log("[auth] Auth callback received");
+
+        // Verify state (CSRF protection)
+        const storedState = await AuthStorage.getOAuthState();
+        if (state !== storedState) {
+          throw new Error("Invalid state parameter - possible CSRF attack");
+        }
+
+        // Get PKCE verifier
+        const verifier = await AuthStorage.getPKCEVerifier();
+        if (!verifier) {
+          throw new Error("PKCE verifier not found");
+        }
+
+        // Exchange code for tokens
+        console.log("[auth] Exchanging code for tokens");
+        const tokenResponse = await oauthClient.exchangeCodeForToken(
+          code,
+          verifier,
+        );
+
+        // Store tokens and user
+        await AuthStorage.saveTokens({
+          accessToken: tokenResponse.accessToken,
+          refreshToken: tokenResponse.refreshToken,
+          expiresAt: Date.now() / 1000 + tokenResponse.expiresIn,
+        });
+        await AuthStorage.saveUser(tokenResponse.user);
+
+        // Clean up temporary storage
+        await AuthStorage.clearPKCEVerifier();
+        await AuthStorage.clearOAuthState();
+
+        console.log("[auth] Auth complete, user:", tokenResponse.user.email);
+
+        // Notify UI
+        figma.ui.postMessage({
+          type: "auth-complete",
+          user: tokenResponse.user,
+        });
+      } catch (error) {
+        console.error("[auth] Auth callback failed:", error);
+        figma.ui.postMessage({
+          type: "auth-error",
+          error:
+            error instanceof Error ? error.message : "Authentication failed",
+        });
+      }
+    } else if (msg.type === "logout") {
+      try {
+        console.log("[auth] Logout requested");
+        const tokens = await AuthStorage.getTokens();
+        if (tokens) {
+          await oauthClient.revokeToken(tokens.accessToken);
+        }
+        await AuthStorage.clearAll();
+
+        figma.ui.postMessage({
+          type: "auth-status",
+          authState: {
+            isAuthenticated: false,
+            user: null,
+          },
+        });
+
+        console.log("[auth] Logout complete");
+      } catch (error) {
+        console.error("[auth] Logout error:", error);
+        // Clear tokens anyway
+        await AuthStorage.clearAll();
+      }
+    } else if (msg.type === "configure-image-upload") {
       const { config } = msg as ConfigureImageUploadMessage;
       const client = new AspectsBackendClient(config);
 

@@ -11,6 +11,7 @@ import {
   PluginSettings,
   SolidColorConversion,
   Warning,
+  AuthState,
 } from "types";
 import {
   preferenceOptions,
@@ -21,6 +22,7 @@ import { useState } from "react";
 import { InfoIcon } from "lucide-react";
 import React from "react";
 import logoFull from "../../../assets/full_logo.svg";
+import { AuthStatusButton } from "./components/AuthStatusButton";
 
 type PluginUIProps = {
   code: string;
@@ -40,12 +42,15 @@ type PluginUIProps = {
   onPreviewRequest: () => void;
   onExportRequest: () => void;
   isExporting: boolean;
+  authState: AuthState;
+  onLogin: () => void;
+  onLogout: () => void;
 };
 
 export const PluginUI = (props: PluginUIProps) => {
   const [showAbout, setShowAbout] = useState(false);
 
-  const [previewExpanded, setPreviewExpanded] = useState(false);
+  const [previewExpanded, setPreviewExpanded] = useState(true);
   const [previewViewMode, setPreviewViewMode] = useState<
     "desktop" | "mobile" | "precision"
   >("precision");
@@ -65,18 +70,26 @@ export const PluginUI = (props: PluginUIProps) => {
     <div className="flex flex-col h-full dark:text-white">
       <div className="p-2 dark:bg-card">
         <div className="flex justify-between items-center bg-muted dark:bg-card rounded-lg p-2">
-          <img src={logoFull} alt="Aspects" className="h-6" />
-          <button
-            className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-medium ${
-              showAbout
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "bg-muted hover:bg-primary/90 hover:text-primary-foreground"
-            }`}
-            onClick={() => setShowAbout(!showAbout)}
-            aria-label="About"
-          >
-            <InfoIcon size={16} />
-          </button>
+          <img src={logoFull} alt="Aspects" className="h-12 dark:invert" />
+          <div className="flex items-center gap-2">
+            <AuthStatusButton
+              isAuthenticated={props.authState.isAuthenticated}
+              user={props.authState.user}
+              onLogin={props.onLogin}
+              onLogout={props.onLogout}
+            />
+            <button
+              className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-medium ${
+                showAbout
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "bg-muted hover:bg-primary/90 hover:text-primary-foreground"
+              }`}
+              onClick={() => setShowAbout(!showAbout)}
+              aria-label="About"
+            >
+              <InfoIcon size={16} />
+            </button>
+          </div>
         </div>
       </div>
       <div

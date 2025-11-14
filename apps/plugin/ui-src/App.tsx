@@ -1,5 +1,5 @@
 import copy from "copy-to-clipboard";
-import { PluginUI } from "plugin-ui";
+import { PluginUI, AuthDialog } from "plugin-ui";
 import { downloadFile, generateHtmlFilename } from "plugin-ui/src/lib/utils";
 import { useEffect, useState } from "react";
 import {
@@ -13,8 +13,23 @@ import {
   SettingsChangedMessage,
   SolidColorConversion,
   Warning,
+  AuthState,
+  AuthCompleteMessage,
+  AuthErrorMessage,
+  AuthStatusMessage,
 } from "types";
-import { postExportRequest, postPreviewRequest, postUISettingsChangingMessage } from "./messaging";
+import {
+  postExportRequest,
+  postPreviewRequest,
+  postUISettingsChangingMessage,
+  postAuthInitiate,
+  postLogout,
+} from "./messaging";
+import {
+  generateCodeVerifier,
+  generateCodeChallenge,
+  generateState,
+} from "auth";
 
 interface AppState {
   code: string;
@@ -27,6 +42,10 @@ interface AppState {
   colors: SolidColorConversion[];
   gradients: LinearGradientConversion[];
   warnings: Warning[];
+  authState: AuthState;
+  showAuthDialog: boolean;
+  pendingExport: boolean;
+  isAuthenticating: boolean;
 }
 
 const emptyPreview = { size: { width: 0, height: 0 }, content: "" };
@@ -43,6 +62,13 @@ export default function App() {
     colors: [],
     gradients: [],
     warnings: [],
+    authState: {
+      isAuthenticated: false,
+      user: null,
+    },
+    showAuthDialog: false,
+    pendingExport: false,
+    isAuthenticating: false,
   });
 
   const rootStyles = getComputedStyle(document.documentElement);
@@ -132,6 +158,52 @@ export default function App() {
         case "selection-json":
           const json = event.data.pluginMessage.data;
           copy(JSON.stringify(json, null, 2));
+          break;
+
+        case "auth-complete":
+          const authCompleteMessage = untypedMessage as AuthCompleteMessage;
+          setState((prevState) => {
+            const newState = {
+              ...prevState,
+              authState: {
+                isAuthenticated: true,
+                user: authCompleteMessage.user,
+              },
+              showAuthDialog: false,
+              isAuthenticating: false,
+            };
+
+            // If export was pending, trigger download automatically
+            // The plugin will have already processed the export with auth
+            return newState;
+          });
+
+          // If export was pending, retry it now that we're authenticated
+          if (state.pendingExport) {
+            setState((prevState) => ({ ...prevState, pendingExport: false }));
+            postExportRequest({ targetOrigin: "*" });
+          }
+          break;
+
+        case "auth-error":
+          const authErrorMessage = untypedMessage as AuthErrorMessage;
+          console.error("[ui] Auth error:", authErrorMessage.error);
+          alert(`Authentication failed: ${authErrorMessage.error}`);
+          setState((prevState) => ({
+            ...prevState,
+            showAuthDialog: false,
+            pendingExport: false,
+            isAuthenticating: false,
+          }));
+          break;
+
+        case "auth-status":
+          const authStatusMessage = untypedMessage as AuthStatusMessage;
+          setState((prevState) => ({
+            ...prevState,
+            authState: authStatusMessage.authState,
+          }));
+          break;
 
         default:
           break;
@@ -173,11 +245,63 @@ export default function App() {
 
   const handleExport = () => {
     console.log("[ui] Export requested");
+
+    // Check if authenticated before exporting
+    if (!state.authState.isAuthenticated) {
+      console.log("[ui] Not authenticated, showing auth dialog");
+      setState((prevState) => ({
+        ...prevState,
+        showAuthDialog: true,
+        pendingExport: true,
+      }));
+      return;
+    }
+
     setState((prevState) => ({
       ...prevState,
       isExporting: true,
     }));
     postExportRequest({ targetOrigin: "*" });
+  };
+
+  const handleLogin = async () => {
+    console.log("[ui] Login requested");
+    setState((prevState) => ({
+      ...prevState,
+      isAuthenticating: true,
+    }));
+
+    try {
+      // Generate PKCE parameters in UI thread (has access to Web Crypto API)
+      const verifier = generateCodeVerifier();
+      const challenge = await generateCodeChallenge(verifier);
+      const state = generateState();
+
+      console.log("[ui] Generated PKCE parameters");
+      postAuthInitiate(verifier, challenge, state, { targetOrigin: "*" });
+    } catch (error) {
+      console.error("[ui] Failed to generate PKCE:", error);
+      setState((prevState) => ({
+        ...prevState,
+        isAuthenticating: false,
+      }));
+      alert(
+        `Failed to start authentication: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  };
+
+  const handleAuthDialogClose = () => {
+    setState((prevState) => ({
+      ...prevState,
+      showAuthDialog: false,
+      pendingExport: false,
+    }));
+  };
+
+  const handleLogout = () => {
+    console.log("[ui] Logout requested");
+    postLogout({ targetOrigin: "*" });
   };
 
   const darkMode = figmaColorBgValue !== "#ffffff";
@@ -199,6 +323,15 @@ export default function App() {
         onPreviewRequest={handlePreview}
         onExportRequest={handleExport}
         isExporting={state.isExporting}
+        authState={state.authState}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
+      />
+      <AuthDialog
+        isOpen={state.showAuthDialog}
+        onClose={handleAuthDialogClose}
+        onLogin={handleLogin}
+        isLoading={state.isAuthenticating}
       />
     </div>
   );

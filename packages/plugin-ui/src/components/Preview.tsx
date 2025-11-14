@@ -111,15 +111,7 @@ const Preview: React.FC<{
             </button>
           </div> */}
 
-          {/* Expand/Collapse Button */}
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="p-1 rounded-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 transition-colors"
-            aria-label={expanded ? "Minimize preview" : "Maximize preview"}
-            title={expanded ? "Minimize preview" : "Maximize preview"}
-          >
-            {expanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          </button>
+          {/* Expand/Collapse Button - Removed per user request, preview is always expanded */}
         </div>
       </div>
 

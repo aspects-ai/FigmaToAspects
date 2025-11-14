@@ -24,7 +24,7 @@ export const preferenceOptions: LocalCodegenPreferenceOptions[] = [
     label: "Embed Vectors",
     description:
       "Enable this to convert vector shapes to SVGs and embed them in the design. This can be a slow operation. If unchecked, shapes will be converted into rectangles.",
-    isDefault: false,
+    isDefault: true,
     includedLanguages: ["HTML"],
   },
 ];

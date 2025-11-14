@@ -34,7 +34,7 @@ const About = () => {
       {/* Header Section with Logo and Title */}
       <div className="flex flex-col items-center text-center mb-2">
         <div className="w-16 h-16 rounded-xl flex items-center justify-center mb-3">
-          <img src={aspectsIcon} alt="Aspects" className="w-full h-full" />
+          <img src={aspectsIcon} alt="Aspects" className="w-full h-full dark:invert" />
         </div>
         <h2 className="text-2xl font-bold mb-1">Figma to Aspects</h2>
         <div className="flex items-center gap-1 text-neutral-600 dark:text-neutral-300">

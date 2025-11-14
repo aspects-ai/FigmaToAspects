@@ -50,6 +50,54 @@ export interface AspectsBackendConfig {
   headers?: Record<string, string>;
 }
 
+// ============================================================================
+// Auth Types
+// ============================================================================
+
+/**
+ * User information returned from OAuth flow
+ */
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+}
+
+/**
+ * OAuth tokens stored in clientStorage
+ */
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number; // Unix timestamp in seconds
+}
+
+/**
+ * Auth state for UI
+ */
+export interface AuthState {
+  isAuthenticated: boolean;
+  user: AuthUser | null;
+}
+
+/**
+ * Token response from OAuth endpoints
+ */
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number; // Seconds until expiration
+  tokenType: string; // "Bearer"
+  user: AuthUser;
+}
+
+/**
+ * User info response from /api/oauth/me
+ */
+export interface UserInfoResponse extends AuthUser {
+  // Additional fields can be added here as needed
+}
+
 export interface HTMLSettings {
   showLayerNames: boolean;
   imageUploadMode: 'upload' | 'placeholder';
@@ -134,6 +182,40 @@ export type SelectionStateMessage = Message & {
 export type ConfigureImageUploadMessage = Message & {
   type: "configure-image-upload";
   config: AspectsBackendConfig;
+};
+
+// Auth Messages (UI -> Plugin)
+export type AuthInitiateMessage = Message & {
+  type: "auth-initiate";
+  verifier: string;
+  challenge: string;
+  state: string;
+};
+
+export type AuthCallbackMessage = Message & {
+  type: "auth-callback";
+  code: string;
+  state: string;
+};
+
+export type LogoutMessage = Message & {
+  type: "logout";
+};
+
+// Auth Messages (Plugin -> UI)
+export type AuthCompleteMessage = Message & {
+  type: "auth-complete";
+  user: AuthUser;
+};
+
+export type AuthErrorMessage = Message & {
+  type: "auth-error";
+  error: string;
+};
+
+export type AuthStatusMessage = Message & {
+  type: "auth-status";
+  authState: AuthState;
 };
 
 // Nodes
