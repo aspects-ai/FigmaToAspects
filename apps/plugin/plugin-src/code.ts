@@ -9,6 +9,7 @@ import {
   postSettingsChanged,
 } from "backend";
 import { nodesToJSON } from "backend/src/altNodes/jsonNodeConversion";
+import { convertToCode } from "backend/src/common/retrieveUI/convertToCode";
 import { retrieveGenericSolidUIColors } from "backend/src/common/retrieveUI/retrieveColors";
 import { flutterCodeGenTextStyles } from "backend/src/flutter/flutterMain";
 import { htmlCodeGenTextStyles } from "backend/src/html/htmlMain";
@@ -32,6 +33,15 @@ import {
 } from "auth";
 
 let userPluginSettings: PluginSettings;
+
+// Helper to convert string to Uint8Array (TextEncoder not available in Figma sandbox)
+function stringToUint8Array(str: string): Uint8Array {
+  const arr = new Uint8Array(str.length);
+  for (let i = 0; i < str.length; i++) {
+    arr[i] = str.charCodeAt(i);
+  }
+  return arr;
+}
 
 export const defaultPluginSettings: PluginSettings = {
   framework: "HTML",
@@ -122,17 +132,227 @@ const safeRun = async (settings: PluginSettings) => {
   }
 };
 
+// Export handler: generates code, uploads to backend, and opens deep link
+const safeExport = async (settings: PluginSettings) => {
+  if (isLoading === false) {
+    try {
+      isLoading = true;
+
+      // Run code generation (this sends code to UI for preview)
+      await run(settings);
+
+      // Re-generate code for upload
+      const selection = figma.currentPage.selection;
+      if (selection.length === 0) {
+        throw new Error("No selection to export");
+      }
+
+      const convertedSelection = await nodesToJSON(selection, settings);
+      const code = await convertToCode(convertedSelection, settings);
+
+      // Generate filename with timestamp
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, "-")
+        .slice(0, 19);
+      const filename = `figma-export-${timestamp}.html`;
+
+      // Create file data from HTML code (convert string to Uint8Array for Figma environment)
+      const fileData = stringToUint8Array(code);
+
+      // Upload to backend
+      console.log("[export] Uploading file to backend...");
+      const uploadedFiles = await backendClient.uploadFile(
+        fileData as any,
+        filename,
+        `Figma export ${timestamp}`
+      );
+
+      if (uploadedFiles.length === 0) {
+        throw new Error("No file was uploaded");
+      }
+
+      const attachmentId = uploadedFiles[0].id;
+      const deepLinkUrl = `${webAppUrl}?attachmentPreloadIds=[${attachmentId}]`;
+
+      console.log("[export] Upload successful, deep link:", deepLinkUrl);
+
+      // Notify UI of success
+      figma.ui.postMessage({
+        type: "export-success",
+        attachmentId,
+        deepLinkUrl,
+      });
+
+      // Open the deep link in browser
+      figma.openExternal(deepLinkUrl);
+
+      setTimeout(() => {
+        isLoading = false;
+      }, 1);
+    } catch (e) {
+      isLoading = false;
+      console.error("[export] Export failed:", e);
+
+      // Notify UI of error
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      figma.ui.postMessage({
+        type: "export-error",
+        error: errorMessage,
+      });
+
+      figma.ui.postMessage({ type: "conversion-complete", success: false });
+    }
+  }
+};
+
+// Project generation handler: uploads files, creates project, and starts AI generation
+const safeGenerateProject = async (
+  settings: PluginSettings,
+  projectName: string,
+  prompt: string
+) => {
+  if (isLoading === false) {
+    try {
+      isLoading = true;
+
+      // Step 1: Upload files
+      figma.ui.postMessage({
+        type: "project-generation-progress",
+        stage: "uploading",
+        message: "Uploading files...",
+      });
+
+      const selection = figma.currentPage.selection;
+      if (selection.length === 0) {
+        throw new Error("No selection to export");
+      }
+
+      // Generate code for each selected node
+      const convertedSelection = await nodesToJSON(selection, settings);
+      const code = await convertToCode(convertedSelection, settings);
+
+      // Generate filename and description with node names and timestamp
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, "-")
+        .slice(0, 19);
+      const nodeNames = selection.map((node) => node.name).join(", ");
+      const filename = `figma-export-${timestamp}.html`;
+      const description = `${nodeNames} - ${timestamp}`;
+
+      // Create file data from HTML code (convert string to Uint8Array for Figma environment)
+      const fileData = stringToUint8Array(code);
+
+      // Upload to backend
+      console.log("[project-gen] Uploading file to backend...");
+      const uploadedFiles = await backendClient.uploadFile(
+        fileData as any,
+        filename,
+        description
+      );
+
+      if (uploadedFiles.length === 0) {
+        throw new Error("No file was uploaded");
+      }
+
+      // Step 2: Create project
+      figma.ui.postMessage({
+        type: "project-generation-progress",
+        stage: "creating",
+        message: "Creating project...",
+      });
+
+      console.log("[project-gen] Creating project...");
+
+      // Get current user
+      const user = await AuthStorage.getUser();
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      const project = await backendClient.createProject(
+        projectName,
+        "", // Empty description
+        { width: 1080, height: 1080 }, // Default dimensions
+        user.id
+      );
+
+      console.log("[project-gen] Project created:", project.id);
+
+      // Step 3: Start inference
+      figma.ui.postMessage({
+        type: "project-generation-progress",
+        stage: "generating",
+        message: "Starting generation...",
+      });
+
+      const attachmentIds = uploadedFiles.map((file) => file.id);
+      const inferenceContext =
+        "This is a project exported directly from the user's Figma as HTML.";
+
+      console.log("[project-gen] Starting inference...");
+      await backendClient.performInference(
+        project.id,
+        prompt,
+        attachmentIds,
+        inferenceContext
+      );
+
+      // Success! Construct deep link and open
+      const deepLinkUrl = `${webAppUrl}/project/${project.id}`;
+
+      console.log("[project-gen] Generation successful, deep link:", deepLinkUrl);
+
+      // Notify UI of success
+      figma.ui.postMessage({
+        type: "project-generation-success",
+        projectId: project.id,
+        deepLinkUrl,
+      });
+
+      // Open the deep link in browser
+      figma.openExternal(deepLinkUrl);
+
+      setTimeout(() => {
+        isLoading = false;
+      }, 1);
+    } catch (e) {
+      isLoading = false;
+      console.error("[project-gen] Generation failed:", e);
+
+      // Determine which stage failed
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      let stage = "unknown";
+      if (errorMessage.includes("upload")) stage = "uploading";
+      else if (errorMessage.includes("project")) stage = "creating";
+      else if (errorMessage.includes("inference")) stage = "generating";
+
+      // Notify UI of error
+      figma.ui.postMessage({
+        type: "project-generation-error",
+        error: errorMessage,
+        stage,
+      });
+    }
+  }
+};
+
 // Development configuration: These will be replaced at build time by esbuild --define
 declare const DEV_BACKEND_URL: string | undefined;
 declare const DEV_AUTH_TOKEN: string | undefined;
 
 // OAuth client instance
 let oauthClient: AspectsOAuthClient;
+// Backend client instance (global for export functionality)
+let backendClient: AspectsBackendClient;
+// Web app URL (global for deep linking)
+let webAppUrl: string;
 
 // Initialize auth system
 const initializeAuth = async () => {
   const isDevelopment = typeof DEV_BACKEND_URL !== "undefined";
-  const webAppUrl = isDevelopment
+  webAppUrl = isDevelopment
     ? "http://localhost:3003"
     : "https://aspects.ai";
   const apiUrl = isDevelopment
@@ -155,7 +375,7 @@ const initializeAuth = async () => {
   authTokenProvider.configure(oauthClient);
 
   // Configure backend client with auth
-  const backendClient = new AspectsBackendClient({
+  backendClient = new AspectsBackendClient({
     baseUrl: apiUrl,
     getAuthToken: async () => {
       try {
@@ -216,18 +436,28 @@ const standardMode = async () => {
   configureImageUploadFromDevSettings();
 
   // Send initial selection state to UI
-  const initialSelection = figma.currentPage.selection.length > 0;
+  const initialSelection = figma.currentPage.selection;
+  const hasInitialSelection = initialSelection.length > 0;
+  const initialSelectionName = hasInitialSelection
+    ? initialSelection[0].name
+    : "New Project";
+
   figma.ui.postMessage({
     type: "selection-state",
-    hasSelection: initialSelection,
+    hasSelection: hasInitialSelection,
+    selectionName: initialSelectionName,
   });
 
   // Track selection changes but don't auto-convert
   figma.on("selectionchange", () => {
-    const hasSelection = figma.currentPage.selection.length > 0;
+    const selection = figma.currentPage.selection;
+    const hasSelection = selection.length > 0;
+    const selectionName = hasSelection ? selection[0].name : "New Project";
+
     figma.ui.postMessage({
       type: "selection-state",
       hasSelection: hasSelection,
+      selectionName: selectionName,
     });
   });
 
@@ -350,8 +580,9 @@ const standardMode = async () => {
       // Removed auto-run on settings change
     } else if (msg.type === "preview-requested") {
       await safeRun(userPluginSettings);
-    } else if (msg.type === "export-requested") {
-      await safeRun(userPluginSettings);
+    } else if (msg.type === "project-generation-request") {
+      const { projectName, prompt } = msg as any;
+      await safeGenerateProject(userPluginSettings, projectName, prompt);
     } else if (msg.type === "get-selection-json") {
 
       const nodes = figma.currentPage.selection;

@@ -32,6 +32,37 @@ export interface ImageUploadUrlResponse {
   };
 }
 
+// File Upload Types
+export interface FileAttachment {
+  id: string;
+  filename: string;
+  description: string;
+  url: string;
+  mimeType: string;
+  size: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Project Types
+export interface ProjectDimensions {
+  width: number;
+  height: number;
+}
+
+export interface Project {
+  id: string;
+  userId: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  attachments: FileAttachment[];
+  presentationType: string;
+  frames: any[];
+  previewUrl?: string;
+  dimensions: ProjectDimensions;
+}
+
 export interface AspectsBackendConfig {
   /**
    * Base URL of the Aspects backend
@@ -178,6 +209,7 @@ export type ExportRequestMessage = Message & { type: "export-requested" };
 export type SelectionStateMessage = Message & {
   type: "selection-state";
   hasSelection: boolean;
+  selectionName: string;
 };
 export type ConfigureImageUploadMessage = Message & {
   type: "configure-image-upload";
@@ -213,6 +245,43 @@ export type AuthStatusMessage = Message & {
 export type AuthPollingStatusMessage = Message & {
   type: "auth-polling-status";
   status: string;
+};
+
+// Export Messages
+export type ExportSuccessMessage = Message & {
+  type: "export-success";
+  attachmentId: string;
+  deepLinkUrl: string;
+};
+
+export type ExportErrorMessage = Message & {
+  type: "export-error";
+  error: string;
+};
+
+// Project Generation Messages
+export type ProjectGenerationRequestMessage = Message & {
+  type: "project-generation-request";
+  projectName: string;
+  prompt: string;
+};
+
+export type ProjectGenerationProgressMessage = Message & {
+  type: "project-generation-progress";
+  stage: 'uploading' | 'creating' | 'generating';
+  message: string;
+};
+
+export type ProjectGenerationSuccessMessage = Message & {
+  type: "project-generation-success";
+  projectId: string;
+  deepLinkUrl: string;
+};
+
+export type ProjectGenerationErrorMessage = Message & {
+  type: "project-generation-error";
+  error: string;
+  stage: string;
 };
 
 // Nodes

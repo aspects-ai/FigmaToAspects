@@ -18,6 +18,11 @@ import {
   AuthErrorMessage,
   AuthStatusMessage,
   AuthPollingStatusMessage,
+  ExportSuccessMessage,
+  ExportErrorMessage,
+  ProjectGenerationProgressMessage,
+  ProjectGenerationSuccessMessage,
+  ProjectGenerationErrorMessage,
 } from "types";
 import {
   postExportRequest,
@@ -37,6 +42,7 @@ interface AppState {
   selectedFramework: Framework;
   isLoading: boolean;
   isExporting: boolean;
+  exportSuccess: boolean;
   hasSelection: boolean;
   htmlPreview: HTMLPreview;
   settings: PluginSettings | null;
@@ -49,6 +55,11 @@ interface AppState {
   isAuthenticating: boolean;
   authPollingStatus: string | null;
   currentAuthUrl: string | null;
+  // Project generation state
+  projectGenerationLoading: boolean;
+  projectGenerationStage: 'uploading' | 'creating' | 'generating' | null;
+  projectGenerationError: string | null;
+  defaultProjectName: string;
 }
 
 const emptyPreview = { size: { width: 0, height: 0 }, content: "" };
@@ -59,6 +70,7 @@ export default function App() {
     selectedFramework: "HTML",
     isLoading: false,
     isExporting: false,
+    exportSuccess: false,
     hasSelection: false,
     htmlPreview: emptyPreview,
     settings: null,
@@ -74,6 +86,11 @@ export default function App() {
     isAuthenticating: false,
     authPollingStatus: null,
     currentAuthUrl: null,
+    // Project generation state
+    projectGenerationLoading: false,
+    projectGenerationStage: null,
+    projectGenerationError: null,
+    defaultProjectName: "New Project",
   });
 
   const rootStyles = getComputedStyle(document.documentElement);
@@ -105,15 +122,43 @@ export default function App() {
               isLoading: false,
             };
 
-            // If this was an export request, trigger download
-            if (prevState.isExporting) {
-              const filename = generateHtmlFilename();
-              downloadFile(conversionMessage.code, filename, "text/html");
-              newState.isExporting = false;
-            }
+            // Note: Export is now handled by export-success/export-error messages
+            // isExporting state is managed separately
 
             return newState;
           });
+          break;
+
+        case "export-success":
+          const exportSuccessMessage = untypedMessage as ExportSuccessMessage;
+          console.log("[ui] Export successful, deep link will open:", exportSuccessMessage.deepLinkUrl);
+
+          // The plugin will handle opening the deep link via figma.openExternal()
+          // Show success animation briefly
+          setState((prevState) => ({
+            ...prevState,
+            isExporting: false,
+            exportSuccess: true,
+          }));
+
+          // Reset success state after animation
+          setTimeout(() => {
+            setState((prevState) => ({
+              ...prevState,
+              exportSuccess: false,
+            }));
+          }, 2000);
+          break;
+
+        case "export-error":
+          const exportErrorMessage = untypedMessage as ExportErrorMessage;
+          console.error("[ui] Export failed:", exportErrorMessage.error);
+          alert(`Export failed: ${exportErrorMessage.error}`);
+
+          setState((prevState) => ({
+            ...prevState,
+            isExporting: false,
+          }));
           break;
 
         case "pluginSettingChanged":
@@ -145,6 +190,7 @@ export default function App() {
           setState((prevState) => ({
             ...prevState,
             hasSelection: selectionMessage.hasSelection,
+            defaultProjectName: selectionMessage.selectionName || "New Project",
           }));
           break;
 
@@ -223,6 +269,46 @@ export default function App() {
           }));
           break;
 
+        case "project-generation-progress":
+          const progressMessage = untypedMessage as ProjectGenerationProgressMessage;
+          console.log("[ui] Project generation progress:", progressMessage.stage);
+          setState((prevState) => ({
+            ...prevState,
+            projectGenerationStage: progressMessage.stage,
+          }));
+          break;
+
+        case "project-generation-success":
+          const generationSuccessMessage = untypedMessage as ProjectGenerationSuccessMessage;
+          console.log("[ui] Project generation success:", generationSuccessMessage.projectId);
+
+          setState((prevState) => ({
+            ...prevState,
+            projectGenerationLoading: false,
+            projectGenerationStage: null,
+          }));
+
+          // Show success briefly before dialog closes
+          setTimeout(() => {
+            setState((prevState) => ({
+              ...prevState,
+              exportSuccess: false,
+            }));
+          }, 2000);
+          break;
+
+        case "project-generation-error":
+          const generationErrorMessage = untypedMessage as ProjectGenerationErrorMessage;
+          console.error("[ui] Project generation error:", generationErrorMessage.error);
+
+          setState((prevState) => ({
+            ...prevState,
+            projectGenerationLoading: false,
+            projectGenerationStage: null,
+            projectGenerationError: generationErrorMessage.error,
+          }));
+          break;
+
         default:
           break;
       }
@@ -278,12 +364,33 @@ export default function App() {
       return;
     }
 
+    // Trigger preview generation first so it's available inline
+    postPreviewRequest({ targetOrigin: "*" });
+  };
+
+  const handlePromptSubmit = (projectName: string, prompt: string) => {
+    console.log("[ui] Prompt submitted:", { projectName, prompt });
+
     setState((prevState) => ({
       ...prevState,
-      isExporting: true,
+      projectGenerationLoading: true,
+      projectGenerationError: null,
+      projectGenerationStage: 'uploading',
     }));
-    postExportRequest({ targetOrigin: "*" });
+
+    // Send project generation request to plugin
+    window.parent.postMessage(
+      {
+        pluginMessage: {
+          type: "project-generation-request",
+          projectName,
+          prompt,
+        },
+      },
+      "*"
+    );
   };
+
 
   const handleLogin = async () => {
     console.log("[ui] Login requested");
@@ -360,10 +467,15 @@ export default function App() {
         hasSelection={state.hasSelection}
         onPreviewRequest={handlePreview}
         onExportRequest={handleExport}
+        onPromptSubmit={handlePromptSubmit}
         isExporting={state.isExporting}
+        exportSuccess={state.exportSuccess}
         authState={state.authState}
         onLogin={handleLogin}
         onLogout={handleLogout}
+        defaultProjectName={state.defaultProjectName}
+        projectGenerationLoading={state.projectGenerationLoading}
+        projectGenerationError={state.projectGenerationError}
       />
       <AuthDialog
         isOpen={state.showAuthDialog}

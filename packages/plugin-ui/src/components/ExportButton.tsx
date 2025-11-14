@@ -43,34 +43,43 @@ export function ExportButton({
         className
       )}
       aria-label={
-        isLoading ? "Exporting..." : localSuccess ? "Downloaded!" : "Animate in Aspects"
+        isLoading ? "Uploading..." : localSuccess ? "Opened!" : "Animate in Aspects"
       }
     >
-      <div className="relative h-4 w-4 mr-1.5">
-        <span
-          className={cn(
-            "absolute inset-0 transition-all duration-200",
-            localSuccess
-              ? "opacity-0 scale-75"
-              : "opacity-100 scale-100"
-          )}
-        >
-          <Sparkles className="h-4 w-4" />
-        </span>
-        <span
-          className={cn(
-            "absolute inset-0 transition-all duration-200",
-            localSuccess
-              ? "opacity-100 scale-100"
-              : "opacity-0 scale-75"
-          )}
-        >
-          <Check className="h-4 w-4" />
-        </span>
-      </div>
-      <span className="font-medium">
-        {isLoading ? "Exporting..." : localSuccess ? "Downloaded!" : "Animate in Aspects"}
-      </span>
+      {isLoading ? (
+        <>
+          <div className="w-4 h-4 mr-1.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          <span className="font-medium">Queuing generation...</span>
+        </>
+      ) : (
+        <>
+          <div className="relative h-4 w-4 mr-1.5">
+            <span
+              className={cn(
+                "absolute inset-0 transition-all duration-200",
+                localSuccess
+                  ? "opacity-0 scale-75"
+                  : "opacity-100 scale-100"
+              )}
+            >
+              <Sparkles className="h-4 w-4" />
+            </span>
+            <span
+              className={cn(
+                "absolute inset-0 transition-all duration-200",
+                localSuccess
+                  ? "opacity-100 scale-100"
+                  : "opacity-0 scale-75"
+              )}
+            >
+              <Check className="h-4 w-4" />
+            </span>
+          </div>
+          <span className="font-medium">
+            {localSuccess ? "Opened!" : "Animate in Aspects"}
+          </span>
+        </>
+      )}
     </button>
   );
 }

@@ -6,6 +6,9 @@ import react from "@vitejs/plugin-react-swc";
 export default defineConfig({
   root: "./ui-src",
   plugins: [react(), viteSingleFile()],
+  define: {
+    'import.meta.env.VITE_WEB_APP_URL': JSON.stringify(process.env.WEB_APP_URL || ''),
+  },
   build: {
     target: "ES2017",
     assetsInlineLimit: 100000000,

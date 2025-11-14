@@ -6,14 +6,14 @@ import {
   SelectPreferenceOptions,
 } from "types";
 import { useMemo, useState } from "react";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { coldarkDark as theme } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { PreviewButton } from "./PreviewButton";
 import { ExportButton } from "./ExportButton";
 import Preview from "./Preview";
 import SettingsGroup from "./SettingsGroup";
 import FrameworkTabs from "./FrameworkTabs";
 import { TailwindSettings } from "./TailwindSettings";
+import { cn } from "../lib/utils";
 
 interface CodePanelProps {
   code: string;
@@ -28,8 +28,10 @@ interface CodePanelProps {
   hasSelection: boolean;
   onPreviewRequest: () => void;
   onExportRequest: () => void;
+  onPromptSubmit: (projectName: string, prompt: string) => void;
   isLoading: boolean;
   isExporting: boolean;
+  exportSuccess: boolean;
   htmlPreview: HTMLPreview;
   previewExpanded: boolean;
   setPreviewExpanded: (expanded: boolean) => void;
@@ -37,12 +39,16 @@ interface CodePanelProps {
   setPreviewViewMode: (mode: "desktop" | "mobile" | "precision") => void;
   previewBgColor: "white" | "black";
   setPreviewBgColor: (color: "white" | "black") => void;
+  defaultProjectName: string;
+  projectGenerationLoading: boolean;
+  projectGenerationError: string | null;
 }
 
 const CodePanel = (props: CodePanelProps) => {
-  const [syntaxHovered, setSyntaxHovered] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const initialLinesToShow = 25;
+  const [exportOptionsExpanded, setExportOptionsExpanded] = useState(false);
+  const [projectName, setProjectName] = useState(props.defaultProjectName);
+  const [prompt, setPrompt] = useState("");
+
   const {
     code,
     preferenceOptions,
@@ -52,9 +58,10 @@ const CodePanel = (props: CodePanelProps) => {
     onPreferenceChanged,
     hasSelection,
     onPreviewRequest,
-    onExportRequest,
+    onPromptSubmit,
     isLoading,
     isExporting,
+    exportSuccess,
     htmlPreview,
     previewExpanded,
     setPreviewExpanded,
@@ -62,77 +69,31 @@ const CodePanel = (props: CodePanelProps) => {
     setPreviewViewMode,
     previewBgColor,
     setPreviewBgColor,
+    defaultProjectName,
+    projectGenerationLoading,
+    projectGenerationError,
   } = props;
+
   const isCodeEmpty = code === "";
+  const hasPreview = htmlPreview && htmlPreview.content;
 
-  // Helper function to add the prefix before every class (or className) in the code.
-  // It finds every occurrence of class="..." or className="..." and, for each class,
-  // prepends the custom prefix.
-  const applyPrefixToClasses = (
-    codeString: string,
-    prefix: string | undefined,
-  ) => {
-    if (!prefix) {
-      return codeString;
+  // Update project name when default changes
+  useState(() => {
+    if (defaultProjectName) {
+      setProjectName(defaultProjectName);
     }
+  });
 
-    return codeString.replace(
-      /(class(?:Name)?)="([^"]*)"/g,
-      (match, attr, classes) => {
-        const prefixedClasses = classes
-          .split(/\s+/)
-          .filter(Boolean)
-          .map((cls: string) => prefix + cls)
-          .join(" ");
-        return `${attr}="${prefixedClasses}"`;
-      },
-    );
-  };
-
-  // Function to truncate code to a specific number of lines
-  const truncateCode = (codeString: string, lines: number) => {
-    const codeLines = codeString.split("\n");
-    if (codeLines.length <= lines) {
-      return codeString;
-    }
-    return codeLines.slice(0, lines).join("\n") + "\n...";
-  };
-
-  // If the selected framework is Tailwind and a prefix is provided then transform the code.
-  const prefixedCode =
-    selectedFramework === "Tailwind" &&
-    settings?.customTailwindPrefix?.trim() !== ""
-      ? applyPrefixToClasses(code, settings?.customTailwindPrefix)
-      : code;
-
-  // Memoize the line count calculation to improve performance for large code blocks
-  const lineCount = useMemo(
-    () => prefixedCode.split("\n").length,
-    [prefixedCode],
-  );
-
-  // Determine if code should be truncated
-  const shouldTruncate = !isExpanded && lineCount > initialLinesToShow;
-  const displayedCode = shouldTruncate
-    ? truncateCode(prefixedCode, initialLinesToShow)
-    : prefixedCode;
-  const showMoreButton = lineCount > initialLinesToShow;
-
-  const handleButtonHover = () => setSyntaxHovered(true);
-  const handleButtonLeave = () => setSyntaxHovered(false);
-
-  // Memoized preference groups for better performance
+  // Memoized preference groups
   const {
     essentialPreferences,
     stylingPreferences,
     selectableSettingsFiltered,
   } = useMemo(() => {
-    // Get preferences for the current framework
     const frameworkPreferences = preferenceOptions.filter((preference) =>
       preference.includedLanguages?.includes(selectedFramework),
     );
 
-    // Define preference grouping based on property names
     const essentialPropertyNames = ["jsx"];
     const stylingPropertyNames = [
       "useTailwind4",
@@ -144,7 +105,6 @@ const CodePanel = (props: CodePanelProps) => {
       "embedVectors",
     ];
 
-    // Group preferences by category
     return {
       essentialPreferences: frameworkPreferences.filter((p) =>
         essentialPropertyNames.includes(p.propertyName),
@@ -158,146 +118,184 @@ const CodePanel = (props: CodePanelProps) => {
     };
   }, [preferenceOptions, selectPreferenceOptions, selectedFramework]);
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (prompt.trim() && projectName.trim() && !projectGenerationLoading) {
+      onPromptSubmit(projectName.trim(), prompt.trim());
+    }
+  };
+
   return (
     <div className="w-full flex flex-col gap-2 mt-2">
-      <div className="flex items-center justify-between w-full">
-        <p className="text-lg font-medium text-center dark:text-white rounded-lg">
-          Actions
-        </p>
-        <div className="flex gap-2">
+      {/* Preview Section */}
+      <div className="flex flex-col bg-card border rounded-lg overflow-hidden">
+        <div className="flex items-center justify-between px-3 py-2 border-b dark:border-neutral-700">
+          <p className="text-sm font-medium dark:text-white">Preview</p>
           <PreviewButton
             onPreview={onPreviewRequest}
             isLoading={isLoading}
             disabled={!hasSelection}
           />
-          <ExportButton
-            onExport={onExportRequest}
-            isLoading={isLoading}
-            disabled={!hasSelection}
-            showSuccess={isExporting}
-          />
         </div>
-      </div>
 
-      <div className="flex flex-col p-3 bg-card border rounded-lg text-sm">
-        {/* Essential settings always shown */}
-        <SettingsGroup
-          title=""
-          settings={essentialPreferences}
-          alwaysExpanded={true}
-          selectedSettings={settings}
-          onPreferenceChanged={onPreferenceChanged}
-        />
-
-        {/* Framework-specific options */}
-        {selectableSettingsFiltered.length > 0 && (
-          <div className="mt-1 mb-2 last:mb-0">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Export Options
-              </p>
-              {!hasSelection && (
-                <p className="text-xs font-medium text-orange-600 dark:text-orange-400 flex items-center gap-1">
-                  <span>(!)</span>
-                  <span>Please Select a Frame</span>
-                </p>
-              )}
+        {isLoading ? (
+          <div className="flex justify-center items-center bg-neutral-50 dark:bg-neutral-900 p-8 rounded-b-lg">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-muted-foreground">Loading preview...</p>
             </div>
-            {selectableSettingsFiltered.map((preference) => {
-              // Regular toggle buttons for other options
-              return (
-                <FrameworkTabs
-                  options={preference.options}
-                  selectedValue={
-                    (settings?.[preference.propertyName] ??
-                      preference.options.find((option) => option.isDefault)
-                        ?.value ??
-                      "") as string
-                  }
-                  onChange={(value) => {
-                    onPreferenceChanged(preference.propertyName, value);
-                  }}
-                />
-              );
-            })}
           </div>
-        )}
-
-        {/* Styling preferences with custom prefix for Tailwind */}
-        {(stylingPreferences.length > 0 ||
-          selectedFramework === "Tailwind") && (
-          <SettingsGroup
-            title="Styling Options"
-            settings={stylingPreferences}
-            selectedSettings={settings}
-            onPreferenceChanged={onPreferenceChanged}
-          >
-            {selectedFramework === "Tailwind" && (
-              <TailwindSettings
-                settings={settings}
-                onPreferenceChanged={onPreferenceChanged}
-              />
-            )}
-          </SettingsGroup>
-        )}
+        ) : hasPreview ? (
+          <Preview
+            htmlPreview={htmlPreview}
+            expanded={previewExpanded}
+            setExpanded={setPreviewExpanded}
+            viewMode={previewViewMode}
+            setViewMode={setPreviewViewMode}
+            bgColor={previewBgColor}
+            setBgColor={setPreviewBgColor}
+          />
+        ) : null}
       </div>
 
-      {isCodeEmpty === false && htmlPreview && (
-        <Preview
-          htmlPreview={htmlPreview}
-          expanded={previewExpanded}
-          setExpanded={setPreviewExpanded}
-          viewMode={previewViewMode}
-          setViewMode={setPreviewViewMode}
-          bgColor={previewBgColor}
-          setBgColor={setPreviewBgColor}
-        />
-      )}
-
-      {/* Code preview section removed - hidden from UI */}
-      <div style={{ display: "none" }}>
-        {!isCodeEmpty && (
-          <>
-            <SyntaxHighlighter
-              language={
-                selectedFramework === "HTML" &&
-                settings?.htmlGenerationMode === "styled-components"
-                  ? "jsx"
-                  : selectedFramework === "Flutter"
-                    ? "dart"
-                    : selectedFramework === "SwiftUI"
-                      ? "swift"
-                      : selectedFramework === "Compose"
-                        ? "kotlin"
-                        : "html"
-              }
-              style={theme}
-              customStyle={{
-                fontSize: 12,
-                borderRadius: 8,
-                marginTop: 0,
-                marginBottom: 0,
-                backgroundColor: syntaxHovered ? "#1E2B1A" : "#1B1B1B",
-                transitionProperty: "all",
-                transitionTimingFunction: "ease",
-                transitionDuration: "0.2s",
-              }}
+      {/* Animate in Aspects Section */}
+      <div className="flex flex-col p-3 bg-white dark:bg-neutral-800 border rounded-lg">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label
+              htmlFor="projectName"
+              className="block text-xs font-medium mb-1 dark:text-neutral-300"
             >
-              {displayedCode}
-            </SyntaxHighlighter>
-            {showMoreButton && (
-              <div className="flex justify-center dark:bg-[#1B1B1B] border-t dark:border-gray-700">
-                <button
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className="text-xs w-full flex justify-center py-3 text-blue-500 hover:text-blue-400 transition-colors"
-                  aria-label="Show more code. This could be slow or freeze Figma for a few seconds."
-                  title="Show more code. This could be slow or freeze Figma for a few seconds."
-                >
-                  {isExpanded ? "Show Less" : "Show More"}
-                </button>
+              Project Name
+            </label>
+            <input
+              id="projectName"
+              type="text"
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              disabled={projectGenerationLoading}
+              placeholder="Enter project name"
+              className={cn(
+                "w-full px-2 py-1.5 text-sm border rounded-md",
+                "dark:bg-neutral-800 dark:border-neutral-700 dark:text-white",
+                "focus:outline-none focus:ring-1 focus:ring-primary",
+                "disabled:opacity-50 disabled:cursor-not-allowed"
+              )}
+              required
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="prompt"
+              className="block text-xs font-medium mb-1 dark:text-neutral-300"
+            >
+              Animation Prompt
+            </label>
+            <textarea
+              id="prompt"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              disabled={projectGenerationLoading}
+              placeholder="Describe how you want to animate this design..."
+              rows={3}
+              className={cn(
+                "w-full px-2 py-1.5 text-sm border rounded-md resize-none",
+                "dark:bg-neutral-800 dark:border-neutral-700 dark:text-white",
+                "focus:outline-none focus:ring-1 focus:ring-primary",
+                "disabled:opacity-50 disabled:cursor-not-allowed"
+              )}
+              required
+            />
+          </div>
+
+          {projectGenerationError && (
+            <div className="p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+              <p className="text-xs text-red-600 dark:text-red-400">
+                {projectGenerationError}
+              </p>
+            </div>
+          )}
+
+          <ExportButton
+            onExport={handleSubmit as any}
+            isLoading={isLoading || isExporting || projectGenerationLoading}
+            disabled={!hasSelection || !prompt.trim() || !projectName.trim()}
+            showSuccess={exportSuccess}
+          />
+        </form>
+      </div>
+
+      {/* Export Options Section - Collapsible */}
+      <div className="flex flex-col bg-card border rounded-lg overflow-hidden">
+        <button
+          onClick={() => setExportOptionsExpanded(!exportOptionsExpanded)}
+          className="flex items-center justify-between px-3 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+        >
+          <p className="text-sm font-medium dark:text-white">Export Options</p>
+          {exportOptionsExpanded ? (
+            <ChevronUp className="w-4 h-4" />
+          ) : (
+            <ChevronDown className="w-4 h-4" />
+          )}
+        </button>
+
+        {exportOptionsExpanded && (
+          <div className="px-3 pb-3 border-t dark:border-neutral-700">
+            {/* Essential settings */}
+            <SettingsGroup
+              title=""
+              settings={essentialPreferences}
+              alwaysExpanded={true}
+              selectedSettings={settings}
+              onPreferenceChanged={onPreferenceChanged}
+            />
+
+            {/* Framework-specific options */}
+            {selectableSettingsFiltered.length > 0 && (
+              <div className="mt-2 mb-2">
+                {selectableSettingsFiltered.map((preference) => (
+                  <FrameworkTabs
+                    key={preference.propertyName}
+                    options={preference.options}
+                    selectedValue={
+                      (settings?.[preference.propertyName] ??
+                        preference.options.find((option) => option.isDefault)
+                          ?.value ??
+                        "") as string
+                    }
+                    onChange={(value) => {
+                      onPreferenceChanged(preference.propertyName, value);
+                    }}
+                  />
+                ))}
               </div>
             )}
-          </>
+
+            {/* Styling preferences */}
+            {(stylingPreferences.length > 0 ||
+              selectedFramework === "Tailwind") && (
+              <div className="mt-2">
+                {stylingPreferences.map((pref) => (
+                  <SettingsGroup
+                    key={pref.propertyName}
+                    title=""
+                    settings={[pref]}
+                    alwaysExpanded={true}
+                    selectedSettings={settings}
+                    onPreferenceChanged={onPreferenceChanged}
+                  />
+                ))}
+
+                {selectedFramework === "Tailwind" && (
+                  <TailwindSettings
+                    settings={settings}
+                    onPreferenceChanged={onPreferenceChanged}
+                  />
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

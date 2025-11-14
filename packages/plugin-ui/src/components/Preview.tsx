@@ -52,71 +52,9 @@ const Preview: React.FC<{
         : htmlPreview.size.width * scaleFactor + 2; // I don't know why I need the 2, but it works always. I guess rounding error for zoom.
 
   return (
-    <div className="flex flex-col w-full bg-card rounded-lg border border-border">
-      {/* Header with view mode controls */}
-      <div className="flex justify-between items-center px-3 py-2 border-b border-border">
-        <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-          <MonitorSmartphone size={16} />
-          Preview
-        </h3>
-        <div className="flex items-center gap-1">
-          {/* Background Color Toggle - Only show in desktop and mobile modes */}
-
-          <button
-            onClick={() => setBgColor(bgColor === "white" ? "black" : "white")}
-            className="p-1.5 mr-1 rounded-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 transition-colors"
-            aria-label={`Switch the preview to ${bgColor === "white" ? "black" : "white"} background.\nUseful to avoid black text on black background.`}
-            title={`Switch the preview to ${bgColor === "white" ? "black" : "white"} background.\nUseful to avoid black text on black background.`}
-          >
-            <Circle size={14} fill={bgColor} className="stroke-current" />
-          </button>
-
-          {/* View Mode Toggle */}
-          {/* <div className="mr-1 flex bg-neutral-100 dark:bg-neutral-700 rounded-md p-0.5">
-            <button
-              onClick={() => setViewMode("desktop")}
-              className={`p-1 rounded text-xs ${
-                viewMode === "desktop"
-                  ? "bg-white dark:bg-neutral-600 shadow-2xs text-neutral-800 dark:text-white"
-                  : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-white"
-              } transition-colors duration-200`}
-              aria-label="Desktop view"
-              title="Desktop view"
-            >
-              <Monitor size={14} />
-            </button>
-            <button
-              onClick={() => setViewMode("mobile")}
-              className={`p-1 rounded text-xs ${
-                viewMode === "mobile"
-                  ? "bg-white dark:bg-neutral-600 shadow-2xs text-neutral-800 dark:text-white"
-                  : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-white"
-              } transition-colors duration-200`}
-              aria-label="Mobile view"
-              title="Mobile view"
-            >
-              <Smartphone size={14} />
-            </button>
-            <button
-              onClick={() => setViewMode("precision")}
-              className={`p-1 rounded text-xs ${
-                viewMode === "precision"
-                  ? "bg-white dark:bg-neutral-600 shadow-2xs text-neutral-800 dark:text-white"
-                  : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-white"
-              } transition-colors duration-200`}
-              aria-label="Precision view (exact dimensions)"
-              title="Precision view (exact dimensions)"
-            >
-              <Ruler size={14} />
-            </button>
-          </div> */}
-
-          {/* Expand/Collapse Button - Removed per user request, preview is always expanded */}
-        </div>
-      </div>
-
+    <div className="flex flex-col w-full">
       {/* Preview container */}
-      <div className="flex justify-center items-center bg-neutral-50 dark:bg-neutral-900 p-3">
+      <div className="flex justify-center items-center bg-neutral-50 dark:bg-neutral-900 p-3 rounded-b-lg">
         {/* Outer container with fixed dimensions */}
         <div
           className="relative"

@@ -1,4 +1,3 @@
-import React from "react";
 import { Code } from "lucide-react";
 
 interface LoadingProps {}
@@ -40,7 +39,7 @@ const Loading = (_props: LoadingProps) => (
         Converting Design
       </h2>
       <p className="text-sm text-muted-foreground text-center max-w-xs">
-        Please wait while your design is being converted to code. This may take a moment for complex designs.
+        Please wait while your design is being converted. This may take a moment for complex designs.
       </p>
 
       {/* Progress bar */}
