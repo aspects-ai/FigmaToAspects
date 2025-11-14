@@ -74,8 +74,8 @@ const SettingsGroup: React.FC<SettingsGroupProps> = ({
                   onSelect={(value) => {
                     onPreferenceChanged?.(preference.propertyName, value);
                   }}
-                  buttonClass="bg-green-100 dark:bg-black dark:ring-green-800 ring-green-500"
-                  checkClass="bg-green-400 dark:bg-black dark:bg-green-500 dark:border-green-500 ring-green-300 border-green-400"
+                  buttonClass="bg-accent/10 dark:bg-accent/20 ring-accent"
+                  checkClass="bg-accent dark:bg-accent border-accent ring-accent/30"
                 />
               ))}
             </div>

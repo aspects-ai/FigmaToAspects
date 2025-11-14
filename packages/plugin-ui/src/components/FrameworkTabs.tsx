@@ -27,7 +27,7 @@ const FrameworkTabs: React.FC<FrameworkTabsProps> = ({
               onClick={() => onChange(option.value)}
               className={`py-1.5 px-3 rounded-md text-xs font-medium transition-all duration-200 ${
                 isSelected
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "bg-accent text-accent-foreground shadow-sm"
                   : "hover:bg-muted-foreground/10 text-muted-foreground"
               }`}
             >

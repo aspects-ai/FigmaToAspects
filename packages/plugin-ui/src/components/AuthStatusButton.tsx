@@ -42,7 +42,7 @@ export function AuthStatusButton({
         onClick={onLogin}
         className={cn(
           "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
-          "bg-purple-500 text-white hover:bg-purple-600",
+          "bg-foreground text-background hover:bg-foreground/90",
         )}
         aria-label="Log in"
       >
@@ -66,7 +66,7 @@ export function AuthStatusButton({
         aria-label="Account menu"
       >
         <User size={14} />
-        <span className="max-w-[80px] truncate">{user?.name || user?.email}</span>
+        <span className="max-w-[140px] truncate">{user?.name || user?.email}</span>
       </button>
 
       {/* Dropdown menu */}

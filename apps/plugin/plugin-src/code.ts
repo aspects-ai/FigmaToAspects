@@ -20,7 +20,6 @@ import {
   ConfigureImageUploadMessage,
   AspectsBackendConfig,
   AuthInitiateMessage,
-  AuthCallbackMessage,
   LogoutMessage,
 } from "types";
 import { imageUploadService } from "backend/src/common/imageUploadService";
@@ -29,6 +28,7 @@ import {
   AuthStorage,
   AspectsOAuthClient,
   authTokenProvider,
+  generateReadKey,
 } from "auth";
 
 let userPluginSettings: PluginSettings;
@@ -136,13 +136,13 @@ const initializeAuth = async () => {
     ? "http://localhost:3003"
     : "https://aspects.ai";
   const apiUrl = isDevelopment
-    ? "http://localhost:5003"
+    ? DEV_BACKEND_URL
     : "https://api.aspects.ai";
 
   // Initialize OAuth client
-  // Note: Figma plugins cannot use figma:// custom URI schemes
-  // The callback goes to the web app, which will display the auth code to copy
-  const redirectUri = `${webAppUrl}/oauth/callback`;
+  // For polling flow: redirect URI is used to reactivate Figma after auth
+  // The actual tokens come via polling, not from the redirect
+  const redirectUri = "figma://plugin/842128343887142055/callback";
 
   oauthClient = new AspectsOAuthClient({
     webAppUrl,
@@ -239,73 +239,55 @@ const standardMode = async () => {
       try {
         console.log("[auth] Auth initiate requested");
 
-        // PKCE parameters are now generated in the UI thread and passed here
-        const { verifier, challenge, state } = msg as AuthInitiateMessage;
+        // PKCE challenge generated in UI thread
+        const { challenge } = msg as AuthInitiateMessage;
 
-        // Store for later verification
-        await AuthStorage.savePKCEVerifier(verifier);
-        await AuthStorage.saveOAuthState(state);
+        // Generate read key for polling
+        const readKey = generateReadKey();
+        console.log("[auth] Generated read key for polling session");
 
-        // Build auth URL
-        const authUrl = oauthClient.buildAuthUrl(challenge, state);
+        // Create OAuth session
+        const { writeKey, expiresIn } = await oauthClient.createSession(
+          "figma_plugin_v1",
+          readKey,
+        );
+        console.log(`[auth] Session created, expires in ${expiresIn} seconds`);
 
+        // Build auth URL with write key in state parameter
+        const authUrl = oauthClient.buildAuthUrl(challenge, writeKey);
         console.log("[auth] Opening auth URL:", authUrl);
 
         // Open in browser
         figma.openExternal(authUrl);
-      } catch (error) {
-        console.error("[auth] Failed to initiate auth:", error);
-        figma.ui.postMessage({
-          type: "auth-error",
-          error:
-            error instanceof Error ? error.message : "Failed to initiate auth",
-        });
-      }
-    } else if (msg.type === "auth-callback") {
-      try {
-        const { code, state } = msg as AuthCallbackMessage;
-        console.log("[auth] Auth callback received");
 
-        // Verify state (CSRF protection)
-        const storedState = await AuthStorage.getOAuthState();
-        if (state !== storedState) {
-          throw new Error("Invalid state parameter - possible CSRF attack");
-        }
-
-        // Get PKCE verifier
-        const verifier = await AuthStorage.getPKCEVerifier();
-        if (!verifier) {
-          throw new Error("PKCE verifier not found");
-        }
-
-        // Exchange code for tokens
-        console.log("[auth] Exchanging code for tokens");
-        const tokenResponse = await oauthClient.exchangeCodeForToken(
-          code,
-          verifier,
-        );
+        // Start polling for tokens
+        console.log("[auth] Starting to poll for authorization...");
+        const { accessToken, refreshToken, user } =
+          await oauthClient.pollForTokens(readKey, (status) => {
+            // Send status updates to UI
+            figma.ui.postMessage({
+              type: "auth-polling-status",
+              status,
+            });
+          });
 
         // Store tokens and user
         await AuthStorage.saveTokens({
-          accessToken: tokenResponse.accessToken,
-          refreshToken: tokenResponse.refreshToken,
-          expiresAt: Date.now() / 1000 + tokenResponse.expiresIn,
+          accessToken,
+          refreshToken,
+          expiresAt: Date.now() / 1000 + 3600, // 1 hour from now
         });
-        await AuthStorage.saveUser(tokenResponse.user);
+        await AuthStorage.saveUser(user);
 
-        // Clean up temporary storage
-        await AuthStorage.clearPKCEVerifier();
-        await AuthStorage.clearOAuthState();
-
-        console.log("[auth] Auth complete, user:", tokenResponse.user.email);
+        console.log("[auth] Auth complete, user:", user.email);
 
         // Notify UI
         figma.ui.postMessage({
           type: "auth-complete",
-          user: tokenResponse.user,
+          user: user,
         });
       } catch (error) {
-        console.error("[auth] Auth callback failed:", error);
+        console.error("[auth] Auth flow failed:", error);
         figma.ui.postMessage({
           type: "auth-error",
           error:
@@ -335,6 +317,25 @@ const standardMode = async () => {
         // Clear tokens anyway
         await AuthStorage.clearAll();
       }
+    } else if (msg.type === "auth-status-request") {
+      // UI is requesting current auth status
+      const isAuth = await authTokenProvider.isAuthenticated();
+      const user = await AuthStorage.getUser();
+
+      figma.ui.postMessage({
+        type: "auth-status",
+        authState: {
+          isAuthenticated: isAuth,
+          user: user,
+        },
+      });
+
+      console.log(
+        "[auth] Auth status requested, authenticated:",
+        isAuth,
+        "user:",
+        user?.email,
+      );
     } else if (msg.type === "configure-image-upload") {
       const { config } = msg as ConfigureImageUploadMessage;
       const client = new AspectsBackendClient(config);

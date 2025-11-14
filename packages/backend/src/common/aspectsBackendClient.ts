@@ -30,7 +30,7 @@ export class AspectsBackendClient {
     }
 
     const response = await fetch(
-      `${this.config.baseUrl}/api/figma/imageUploadUrl`,
+      `${this.config.baseUrl}/figma/imageUploadUrl`,
       {
         method: "POST",
         headers,

@@ -21,20 +21,47 @@ export class AspectsOAuthClient {
   }
 
   /**
+   * Create OAuth session for polling-based flow
+   * Returns write key that will be used in state parameter
+   */
+  async createSession(
+    clientId: string,
+    readKey: string,
+  ): Promise<{ writeKey: string; expiresIn: number }> {
+    const response = await fetch(`${this.config.apiUrl}/oauth/session/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        clientId,
+        readKey,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => response.statusText);
+      throw new Error(`Failed to create OAuth session: ${response.status} ${errorText}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
    * Build OAuth authorization URL
    * User will be redirected to this URL to log in and authorize the plugin
    *
    * Note: Uses manual URL encoding instead of URLSearchParams
    * because URLSearchParams is not available in Figma plugin sandbox
    */
-  buildAuthUrl(codeChallenge: string, state: string): string {
+  buildAuthUrl(codeChallenge: string, writeKey: string): string {
     const params = {
       responseType: "code",
       clientId: this.config.clientId,
       redirectUri: this.config.redirectUri,
       codeChallenge: codeChallenge,
       codeChallengeMethod: "S256",
-      state: state,
+      state: writeKey, // Write key goes in state parameter
     };
 
     // Manually build query string (URLSearchParams not available in Figma sandbox)
@@ -42,7 +69,77 @@ export class AspectsOAuthClient {
       .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
       .join("&");
 
-    return `${this.config.webAppUrl}/oauth/consent?${queryString}`;
+    return `${this.config.apiUrl}/oauth/authorize?${queryString}`;
+  }
+
+  /**
+   * Poll for OAuth completion
+   * Returns tokens when user completes authorization
+   * Polls every 5 seconds with 10 minute timeout
+   * Pauses polling when window is not visible (backgrounded)
+   */
+  async pollForTokens(
+    readKey: string,
+    onStatusUpdate?: (message: string) => void,
+  ): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    user: any;
+  }> {
+    const startTime = Date.now();
+    const timeout = 10 * 60 * 1000; // 10 minutes
+    const pollInterval = 5000; // 5 seconds
+
+    while (Date.now() - startTime < timeout) {
+      // Check if window/document is visible (pause polling when backgrounded)
+      // Use both document.hidden and document.hasFocus() for better detection
+      const isDocumentHidden = typeof document !== "undefined" ? document.hidden : false;
+      const hasDocumentFocus = typeof document !== "undefined" ? document.hasFocus() : true;
+      const isVisible = !isDocumentHidden && hasDocumentFocus;
+
+      if (!isVisible) {
+        // Window is backgrounded, wait before checking again
+        onStatusUpdate?.("Paused (Figma is backgrounded)");
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        continue;
+      }
+
+      try {
+        onStatusUpdate?.("Waiting for authorization...");
+        const response = await fetch(`${this.config.apiUrl}/oauth/poll/${readKey}`);
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status === "completed") {
+            // Success! User has authorized
+            onStatusUpdate?.("Authorization complete!");
+            return {
+              accessToken: data.accessToken,
+              refreshToken: data.refreshToken,
+              user: data.user,
+            };
+          } else if (data.status === "pending") {
+            // Still waiting for user to authorize
+            onStatusUpdate?.("Waiting for authorization...");
+            await new Promise((resolve) => setTimeout(resolve, pollInterval));
+            continue;
+          }
+        } else if (response.status === 404) {
+          // Session expired or not found
+          throw new Error("OAuth session expired. Please try again.");
+        }
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("expired")) {
+          throw error;
+        }
+        // Network error, continue polling
+        console.warn("Polling error:", error);
+        onStatusUpdate?.("Network error, retrying...");
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+      }
+    }
+
+    throw new Error("OAuth authorization timed out after 10 minutes");
   }
 
   /**
@@ -53,7 +150,7 @@ export class AspectsOAuthClient {
     code: string,
     codeVerifier: string,
   ): Promise<TokenResponse> {
-    const response = await fetch(`${this.config.apiUrl}/api/oauth/token`, {
+    const response = await fetch(`${this.config.apiUrl}/oauth/token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -88,7 +185,7 @@ export class AspectsOAuthClient {
    * Note: Refresh tokens are rotated - always store the new one
    */
   async refreshAccessToken(refreshToken: string): Promise<TokenResponse> {
-    const response = await fetch(`${this.config.apiUrl}/api/oauth/refresh`, {
+    const response = await fetch(`${this.config.apiUrl}/oauth/refresh`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -119,7 +216,7 @@ export class AspectsOAuthClient {
    * Get current user info (validates token)
    */
   async getUserInfo(accessToken: string): Promise<UserInfoResponse> {
-    const response = await fetch(`${this.config.apiUrl}/api/oauth/me`, {
+    const response = await fetch(`${this.config.apiUrl}/oauth/me`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -137,7 +234,7 @@ export class AspectsOAuthClient {
    */
   async revokeToken(accessToken: string): Promise<void> {
     try {
-      await fetch(`${this.config.apiUrl}/api/oauth/revoke`, {
+      await fetch(`${this.config.apiUrl}/oauth/revoke`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,

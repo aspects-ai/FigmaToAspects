@@ -187,15 +187,7 @@ export type ConfigureImageUploadMessage = Message & {
 // Auth Messages (UI -> Plugin)
 export type AuthInitiateMessage = Message & {
   type: "auth-initiate";
-  verifier: string;
-  challenge: string;
-  state: string;
-};
-
-export type AuthCallbackMessage = Message & {
-  type: "auth-callback";
-  code: string;
-  state: string;
+  challenge: string; // PKCE code challenge
 };
 
 export type LogoutMessage = Message & {
@@ -216,6 +208,11 @@ export type AuthErrorMessage = Message & {
 export type AuthStatusMessage = Message & {
   type: "auth-status";
   authState: AuthState;
+};
+
+export type AuthPollingStatusMessage = Message & {
+  type: "auth-polling-status";
+  status: string;
 };
 
 // Nodes

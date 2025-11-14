@@ -3,7 +3,6 @@ import {
   SettingWillChangeMessage,
   UIMessage,
   AuthInitiateMessage,
-  AuthCallbackMessage,
   LogoutMessage,
 } from "types";
 
@@ -47,29 +46,12 @@ export const postExportRequest = (options?: WindowPostMessageOptions) => {
 
 // Auth message helpers
 export const postAuthInitiate = (
-  verifier: string,
   challenge: string,
-  state: string,
   options?: WindowPostMessageOptions,
 ) => {
   const message: AuthInitiateMessage = {
     type: "auth-initiate",
-    verifier,
     challenge,
-    state,
-  };
-  postUIMessage(message, options);
-};
-
-export const postAuthCallback = (
-  code: string,
-  state: string,
-  options?: WindowPostMessageOptions,
-) => {
-  const message: AuthCallbackMessage = {
-    type: "auth-callback",
-    code,
-    state,
   };
   postUIMessage(message, options);
 };
@@ -77,6 +59,13 @@ export const postAuthCallback = (
 export const postLogout = (options?: WindowPostMessageOptions) => {
   const message: LogoutMessage = {
     type: "logout",
+  };
+  postUIMessage(message, options);
+};
+
+export const postAuthStatusRequest = (options?: WindowPostMessageOptions) => {
+  const message: Message = {
+    type: "auth-status-request",
   };
   postUIMessage(message, options);
 };

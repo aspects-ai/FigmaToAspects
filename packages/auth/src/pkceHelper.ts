@@ -12,16 +12,32 @@ import { sha256 } from "js-sha256";
  * Get crypto.getRandomValues - available even in sandboxed iframes
  */
 function getRandomValues(array: Uint8Array): Uint8Array {
+  // Try window.crypto first (most common in browser)
   if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
     return window.crypto.getRandomValues(array);
   }
-  if (typeof globalThis !== "undefined" && globalThis.crypto?.getRandomValues) {
-    return globalThis.crypto.getRandomValues(array);
+
+  // Try self.crypto (works in web workers and some iframes)
+  if (typeof self !== "undefined" && (self as any).crypto?.getRandomValues) {
+    return (self as any).crypto.getRandomValues(array);
   }
-  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
-    return crypto.getRandomValues(array);
+
+  // Try global crypto object
+  if (typeof crypto !== "undefined" && (crypto as any).getRandomValues) {
+    return (crypto as any).getRandomValues(array);
   }
-  throw new Error("crypto.getRandomValues not available in this environment");
+
+  // Try globalThis.crypto
+  if (typeof globalThis !== "undefined" && (globalThis as any).crypto?.getRandomValues) {
+    return (globalThis as any).crypto.getRandomValues(array);
+  }
+
+  // Last resort: use Math.random (NOT cryptographically secure, but better than failing)
+  console.warn("crypto.getRandomValues not available, falling back to Math.random (not cryptographically secure)");
+  for (let i = 0; i < array.length; i++) {
+    array[i] = Math.floor(Math.random() * 256);
+  }
+  return array;
 }
 
 /**
@@ -54,6 +70,19 @@ export function generateState(): string {
   const array = new Uint8Array(16);
   getRandomValues(array);
   return base64URLEncode(array);
+}
+
+/**
+ * Generate read key for polling-based OAuth flow
+ * Returns 64-character hex string (32 bytes)
+ */
+export function generateReadKey(): string {
+  const array = new Uint8Array(32);
+  getRandomValues(array);
+  // Convert to hex string
+  return Array.from(array)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 /**

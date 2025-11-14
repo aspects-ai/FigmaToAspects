@@ -17,6 +17,7 @@ import {
   AuthCompleteMessage,
   AuthErrorMessage,
   AuthStatusMessage,
+  AuthPollingStatusMessage,
 } from "types";
 import {
   postExportRequest,
@@ -24,11 +25,11 @@ import {
   postUISettingsChangingMessage,
   postAuthInitiate,
   postLogout,
+  postAuthStatusRequest,
 } from "./messaging";
 import {
-  generateCodeVerifier,
   generateCodeChallenge,
-  generateState,
+  generateCodeVerifier,
 } from "auth";
 
 interface AppState {
@@ -46,6 +47,8 @@ interface AppState {
   showAuthDialog: boolean;
   pendingExport: boolean;
   isAuthenticating: boolean;
+  authPollingStatus: string | null;
+  currentAuthUrl: string | null;
 }
 
 const emptyPreview = { size: { width: 0, height: 0 }, content: "" };
@@ -69,6 +72,8 @@ export default function App() {
     showAuthDialog: false,
     pendingExport: false,
     isAuthenticating: false,
+    authPollingStatus: null,
+    currentAuthUrl: null,
   });
 
   const rootStyles = getComputedStyle(document.documentElement);
@@ -160,6 +165,15 @@ export default function App() {
           copy(JSON.stringify(json, null, 2));
           break;
 
+        case "auth-polling-status":
+          const pollingMessage = untypedMessage as AuthPollingStatusMessage;
+          setState((prevState) => ({
+            ...prevState,
+            authPollingStatus: pollingMessage.status,
+            showAuthDialog: true, // Keep dialog open during polling
+          }));
+          break;
+
         case "auth-complete":
           const authCompleteMessage = untypedMessage as AuthCompleteMessage;
           setState((prevState) => {
@@ -171,6 +185,8 @@ export default function App() {
               },
               showAuthDialog: false,
               isAuthenticating: false,
+              authPollingStatus: null,
+              currentAuthUrl: null,
             };
 
             // If export was pending, trigger download automatically
@@ -194,6 +210,8 @@ export default function App() {
             showAuthDialog: false,
             pendingExport: false,
             isAuthenticating: false,
+            authPollingStatus: null,
+            currentAuthUrl: null,
           }));
           break;
 
@@ -209,6 +227,9 @@ export default function App() {
           break;
       }
     };
+
+    // Request initial auth status after message handler is ready
+    postAuthStatusRequest({ targetOrigin: "*" });
 
     return () => {
       window.onmessage = null;
@@ -272,13 +293,12 @@ export default function App() {
     }));
 
     try {
-      // Generate PKCE parameters in UI thread (has access to Web Crypto API)
+      // Generate PKCE code challenge in UI thread (has access to Web Crypto API)
       const verifier = generateCodeVerifier();
       const challenge = await generateCodeChallenge(verifier);
-      const state = generateState();
 
-      console.log("[ui] Generated PKCE parameters");
-      postAuthInitiate(verifier, challenge, state, { targetOrigin: "*" });
+      console.log("[ui] Generated PKCE challenge");
+      postAuthInitiate(challenge, { targetOrigin: "*" });
     } catch (error) {
       console.error("[ui] Failed to generate PKCE:", error);
       setState((prevState) => ({
@@ -296,6 +316,24 @@ export default function App() {
       ...prevState,
       showAuthDialog: false,
       pendingExport: false,
+      authPollingStatus: null,
+      currentAuthUrl: null,
+      isAuthenticating: false,
+    }));
+  };
+
+  const handleRetryAuth = () => {
+    // Retry opening the browser - call login again
+    handleLogin();
+  };
+
+  const handleManualPoll = () => {
+    // Manual poll trigger - just log for now since polling is continuous
+    // This is mostly for user reassurance that something is happening
+    console.log("[ui] Manual poll requested");
+    setState((prevState) => ({
+      ...prevState,
+      authPollingStatus: "Checking for authorization...",
     }));
   };
 
@@ -332,6 +370,9 @@ export default function App() {
         onClose={handleAuthDialogClose}
         onLogin={handleLogin}
         isLoading={state.isAuthenticating}
+        pollingStatus={state.authPollingStatus}
+        onRetry={handleRetryAuth}
+        onManualPoll={handleManualPoll}
       />
     </div>
   );
