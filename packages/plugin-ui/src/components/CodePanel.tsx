@@ -7,6 +7,7 @@ import {
   PluginSettings,
   SelectPreferenceOptions,
 } from "types";
+import aspectsBanner from "../../../../assets/aspects_banner.webp";
 import { cn } from "../lib/utils";
 import { ExportButton } from "./ExportButton";
 import FrameworkTabs from "./FrameworkTabs";
@@ -134,45 +135,14 @@ const CodePanel = (props: CodePanelProps) => {
   };
 
   return (
-    <div className="w-full flex flex-col gap-2 mt-2">
-      {/* Preview Section */}
-      <div className="flex flex-col bg-card border rounded-lg overflow-hidden">
-        <div className="flex items-center bg-foreground/80 justify-between px-3 py-2 border-b">
-          <p className="text-sm font-medium text-background">Preview Selection</p>
-          <PreviewButton
-            onPreview={onPreviewRequest}
-            isLoading={isLoading}
-            disabled={!hasSelection}
-          />
-        </div>
-
-        {isLoading ? (
-          <div className="flex justify-center items-center bg-neutral-50 dark:bg-neutral-900 p-8 rounded-b-lg">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-muted-foreground">Loading preview...</p>
-            </div>
-          </div>
-        ) : hasPreview ? (
-          <Preview
-            htmlPreview={htmlPreview}
-            expanded={previewExpanded}
-            setExpanded={setPreviewExpanded}
-            viewMode={previewViewMode}
-            setViewMode={setPreviewViewMode}
-            bgColor={previewBgColor}
-            setBgColor={setPreviewBgColor}
-          />
-        ) : null}
-      </div>
-
+    <div className="w-full flex flex-col gap-4 mt-2">
       {/* Animate in Aspects Section */}
-      <div className="flex flex-col p-3 bg-white dark:bg-neutral-800 border rounded-lg">
-        <form onSubmit={handleSubmit} className="space-y-3">
+      <div className="flex flex-col bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-2xs overflow-hidden">
+        <form onSubmit={handleSubmit} className="space-y-4 p-5">
           <div>
             <label
               htmlFor="projectName"
-              className="block text-xs font-medium mb-1 dark:text-neutral-300"
+              className="block text-sm font-medium mb-2 text-neutral-700 dark:text-neutral-300"
             >
               Project Name
             </label>
@@ -187,9 +157,11 @@ const CodePanel = (props: CodePanelProps) => {
               disabled={projectGenerationLoading}
               placeholder="Enter project name"
               className={cn(
-                "w-full px-2 py-1.5 text-sm border rounded-md",
-                "dark:bg-neutral-800 dark:border-neutral-700 dark:text-white",
-                "focus:outline-none focus:ring-1 focus:ring-primary",
+                "w-full px-3 py-2 text-sm border rounded-md",
+                "bg-white dark:bg-neutral-900 border-neutral-300 dark:border-neutral-600",
+                "text-neutral-900 dark:text-white",
+                "placeholder:text-neutral-400",
+                "focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent",
                 "disabled:opacity-50 disabled:cursor-not-allowed"
               )}
               required
@@ -199,7 +171,7 @@ const CodePanel = (props: CodePanelProps) => {
           <div>
             <label
               htmlFor="prompt"
-              className="block text-xs font-medium mb-1 dark:text-neutral-300"
+              className="block text-sm font-medium mb-2 text-neutral-700 dark:text-neutral-300"
             >
               Animation Prompt
             </label>
@@ -214,9 +186,11 @@ const CodePanel = (props: CodePanelProps) => {
               placeholder="Describe how you want to animate this design..."
               rows={3}
               className={cn(
-                "w-full px-2 py-1.5 text-sm border rounded-md resize-none",
-                "dark:bg-neutral-800 dark:border-neutral-700 dark:text-white",
-                "focus:outline-none focus:ring-1 focus:ring-primary",
+                "w-full px-3 py-2 text-sm border rounded-md resize-none",
+                "bg-white dark:bg-neutral-900 border-neutral-300 dark:border-neutral-600",
+                "text-neutral-900 dark:text-white",
+                "placeholder:text-neutral-400",
+                "focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent",
                 "disabled:opacity-50 disabled:cursor-not-allowed"
               )}
               required
@@ -224,24 +198,62 @@ const CodePanel = (props: CodePanelProps) => {
           </div>
 
           {projectGenerationError && (
-            <div className="p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-              <p className="text-xs text-red-600 dark:text-red-400">
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+              <p className="text-sm text-red-600 dark:text-red-400 leading-relaxed">
                 {projectGenerationError}
               </p>
             </div>
           )}
 
-          <ExportButton
-            onExport={handleSubmit as any}
-            isLoading={isLoading || isExporting || projectGenerationLoading}
-            disabled={!hasSelection || !prompt.trim() || !projectName.trim()}
-            showSuccess={exportSuccess}
-          />
+          <div className="flex justify-end">
+            <ExportButton
+              onExport={handleSubmit as any}
+              isLoading={isExporting || projectGenerationLoading}
+              disabled={!hasSelection || !prompt.trim() || !projectName.trim()}
+              showSuccess={exportSuccess}
+            />
+          </div>
         </form>
       </div>
 
-      {/* Export Options Section - Collapsible */}
-      <div className="flex flex-col bg-card border rounded-lg overflow-visible">
+      {/* Preview Section */}
+      <div className="flex flex-col bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-2xs overflow-hidden">
+        <div className="flex justify-end p-5">
+          <PreviewButton
+            onPreview={onPreviewRequest}
+            isLoading={isLoading}
+            disabled={!hasSelection}
+          />
+        </div>
+
+        {(isLoading || hasPreview) && (
+          <>
+            {isLoading ? (
+              <div className="flex justify-center items-center p-8 border-t dark:border-neutral-700">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <p className="text-sm text-muted-foreground">Loading preview...</p>
+                </div>
+              </div>
+            ) : hasPreview ? (
+              <div className="border-t dark:border-neutral-700">
+                <Preview
+                  htmlPreview={htmlPreview}
+                  expanded={previewExpanded}
+                  setExpanded={setPreviewExpanded}
+                  viewMode={previewViewMode}
+                  setViewMode={setPreviewViewMode}
+                  bgColor={previewBgColor}
+                  setBgColor={setPreviewBgColor}
+                />
+              </div>
+            ) : null}
+          </>
+        )}
+      </div>
+
+      {/* Export Options Section - Hidden */}
+      {/* <div className="flex flex-col bg-card border rounded-lg overflow-visible">
         <button
           onClick={() => setExportOptionsExpanded(!exportOptionsExpanded)}
           className="flex items-center justify-between px-3 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
@@ -256,7 +268,6 @@ const CodePanel = (props: CodePanelProps) => {
 
         {exportOptionsExpanded && (
           <div className="px-3 pb-3 border-t dark:border-neutral-700">
-            {/* Essential settings */}
             <SettingsGroup
               title=""
               settings={essentialPreferences}
@@ -265,7 +276,6 @@ const CodePanel = (props: CodePanelProps) => {
               onPreferenceChanged={onPreferenceChanged}
             />
 
-            {/* Framework-specific options */}
             {selectableSettingsFiltered.length > 0 && (
               <div className="mt-2 mb-2">
                 {selectableSettingsFiltered.map((preference) => (
@@ -286,7 +296,6 @@ const CodePanel = (props: CodePanelProps) => {
               </div>
             )}
 
-            {/* Styling preferences */}
             {(stylingPreferences.length > 0 ||
               selectedFramework === "Tailwind") && (
               <div className="mt-2">
@@ -311,7 +320,7 @@ const CodePanel = (props: CodePanelProps) => {
             )}
           </div>
         )}
-      </div>
+      </div> */}
     </div>
   );
 };

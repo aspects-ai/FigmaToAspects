@@ -63,6 +63,15 @@ export interface Project {
   dimensions: ProjectDimensions;
 }
 
+export interface Conversation {
+  id: string;
+  projectId: string;
+  name: string;
+  userId: string;
+  messages: any[];
+  createdAt: string;
+}
+
 export interface AspectsBackendConfig {
   /**
    * Base URL of the Aspects backend

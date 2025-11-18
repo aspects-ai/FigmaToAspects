@@ -23,8 +23,7 @@ if (fs.existsSync(envPath)) {
     }
   });
 } else {
-  console.log('[build-dev] No .env.local found, building without dev config');
-  console.log('[build-dev] Create .env.local in project root to configure dev settings');
+  console.warn('[build-dev] No .env.local found, building without dev config');
 }
 
 // Build define flags for esbuild

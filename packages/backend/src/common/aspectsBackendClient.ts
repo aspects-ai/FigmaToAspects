@@ -1,5 +1,6 @@
 import {
   AspectsBackendConfig,
+  Conversation,
   FileAttachment,
   ImageUploadRequest,
   ImageUploadUrlResponse,
@@ -216,10 +217,54 @@ export class AspectsBackendClient {
   }
 
   /**
+   * Create a new conversation
+   */
+  async createConversation(
+    projectId: string,
+    userId: string,
+    name: string,
+  ): Promise<Conversation> {
+    const authToken = await this.getAuthToken();
+
+    if (!authToken) {
+      throw new Error("Authentication required to create conversations");
+    }
+
+    const conversationData = {
+      id: "",
+      projectId,
+      name,
+      userId,
+      messages: [],
+      createdAt: new Date().toISOString(),
+    };
+
+    const response = await fetch(`${this.config.baseUrl}/conversations`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+        ...this.config.headers,
+      },
+      body: JSON.stringify(conversationData),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => response.statusText);
+      throw new Error(
+        `Failed to create conversation: ${response.status} ${errorText}`,
+      );
+    }
+
+    return await response.json();
+  }
+
+  /**
    * Start AI inference for a project
    */
   async performInference(
     projectId: string,
+    conversationId: string,
     userMessage: string,
     attachmentIds: string[],
     inferenceContext: string,
@@ -234,6 +279,7 @@ export class AspectsBackendClient {
       userMessage,
       inferenceContext,
       chatMode: "edit",
+      conversationId,
       projectId,
       attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
     };

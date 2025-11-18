@@ -70,49 +70,47 @@ export const PluginUI = (props: PluginUIProps) => {
   const isDevelopment = props.settings?.useOldPluginVersion2025 === true;
 
   return (
-    <div className="flex flex-col h-full dark:text-white">
-      {/* Banner Header with background image */}
-      <div className="relative">
-        {/* Background layer with overflow hidden to clip the image */}
-        <div
-          className="absolute inset-0 overflow-hidden"
-          style={{
-            backgroundImage: `url(${aspectsBanner})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
-        >
-          {/* Blurred overlay */}
-          <div className="absolute inset-0 backdrop-blur-md bg-black/30"></div>
-        </div>
+    <div className="relative flex flex-col h-full dark:text-white">
+      {/* Background layer for entire plugin */}
+      <div
+        className="absolute inset-0 overflow-hidden"
+        style={{
+          backgroundImage: `url(${aspectsBanner})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        {/* Blurred overlay */}
+        <div className="absolute inset-0 backdrop-blur-md bg-black/30"></div>
+      </div>
 
-        {/* Content on top with overflow visible for dropdown */}
-        <div className="relative p-3 my-1">
-          <div className="flex justify-between items-center">
-            <img src={logoFull} alt="Aspects" className="h-12 brightness-0 invert" />
-            <div className="flex items-center gap-2">
-              <AuthStatusButton
-                isAuthenticated={props.authState.isAuthenticated}
-                user={props.authState.user}
-                onLogin={props.onLogin}
-                onLogout={props.onLogout}
-              />
-              <button
-                className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-medium transition-all ${
-                  showAbout
-                    ? "bg-white/30 text-white shadow-xs backdrop-blur-sm"
-                    : "bg-transparent hover:bg-white/20 text-white"
-                }`}
-                onClick={() => setShowAbout(!showAbout)}
-                aria-label="About"
-              >
-                <InfoIcon size={16} />
-              </button>
-            </div>
+      {/* Banner Header */}
+      <div className="relative p-3 my-1">
+        <div className="flex justify-between items-center">
+          <img src={logoFull} alt="Aspects" className="h-12 brightness-0 invert" />
+          <div className="flex items-center gap-2">
+            <AuthStatusButton
+              isAuthenticated={props.authState.isAuthenticated}
+              user={props.authState.user}
+              onLogin={props.onLogin}
+              onLogout={props.onLogout}
+            />
+            <button
+              className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-medium transition-all ${
+                showAbout
+                  ? "bg-white/30 text-white shadow-xs backdrop-blur-sm"
+                  : "bg-transparent hover:bg-white/20 text-white"
+              }`}
+              onClick={() => setShowAbout(!showAbout)}
+              aria-label="About"
+            >
+              <InfoIcon size={16} />
+            </button>
           </div>
         </div>
       </div>
-      <div className="flex flex-col h-full overflow-y-auto">
+
+      <div className="relative flex flex-col h-full overflow-y-auto">
         {showAbout ? (
           <About />
         ) : (
@@ -146,22 +144,23 @@ export const PluginUI = (props: PluginUIProps) => {
               projectGenerationError={props.projectGenerationError}
             />
 
-            {(props.colors.length > 0 || props.gradients.length > 0) && (
-              <div className="w-full flex flex-col bg-card border rounded-lg overflow-hidden">
+            {/* Other Details Section - Hidden */}
+            {/* {(props.colors.length > 0 || props.gradients.length > 0) && (
+              <div className="w-full flex flex-col border border-white/20 rounded-lg overflow-hidden bg-white/10">
                 <button
                   onClick={() => setOtherDetailsExpanded(!otherDetailsExpanded)}
-                  className="flex items-center justify-between px-3 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                  className="flex items-center justify-between px-3 py-2 hover:bg-white/20 transition-colors"
                 >
-                  <p className="text-sm font-medium dark:text-white">Other Details</p>
+                  <p className="text-sm font-medium text-white">Other Details</p>
                   {otherDetailsExpanded ? (
-                    <ChevronUp className="w-4 h-4" />
+                    <ChevronUp className="w-4 h-4 text-white" />
                   ) : (
-                    <ChevronDown className="w-4 h-4" />
+                    <ChevronDown className="w-4 h-4 text-white" />
                   )}
                 </button>
 
                 {otherDetailsExpanded && (
-                  <div className="px-3 pb-3 border-t dark:border-neutral-700 space-y-3">
+                  <div className="px-3 pb-3 border-t border-white/20 space-y-3">
                     {props.colors.length > 0 && (
                       <ColorsPanel
                         colors={props.colors}
@@ -182,7 +181,7 @@ export const PluginUI = (props: PluginUIProps) => {
                   </div>
                 )}
               </div>
-            )}
+            )} */}
           </div>
         )}
       </div>

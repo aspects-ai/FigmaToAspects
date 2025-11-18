@@ -30,14 +30,14 @@ const About = () => {
   };
 
   return (
-    <div className="flex flex-col p-5 gap-6 text-sm max-w-2xl mx-auto">
+    <div className="flex flex-col gap-6 text-sm max-w-2xl mx-auto px-4 py-2">
       {/* Header Section with Logo and Title */}
-      <div className="flex flex-col items-center text-center mb-2">
+      <div className="flex flex-col items-center text-center mb-2 border border-white/20 rounded-lg overflow-hidden bg-white/10 p-5">
         <div className="w-16 h-16 rounded-xl flex items-center justify-center mb-3">
-          <img src={aspectsIcon} alt="Aspects" className="w-full h-full dark:invert" />
+          <img src={aspectsIcon} alt="Aspects" className="w-full h-full brightness-0 invert" />
         </div>
-        <h2 className="text-2xl font-bold mb-1">Figma to Aspects</h2>
-        <div className="flex items-center gap-1 text-neutral-600 dark:text-neutral-300">
+        <h2 className="text-2xl font-bold mb-1 text-white">Figma to Aspects</h2>
+        <div className="flex items-center gap-1 text-white/80">
           <span>by Aspects AI</span>
         </div>
         <div className="mt-3 flex gap-3">
@@ -45,7 +45,7 @@ const About = () => {
             href="https://github.com/aspects-ai"
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 rounded-full bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
+            className="p-2 rounded-full bg-transparent hover:bg-white/20 transition-colors text-white"
             aria-label="GitHub Profile"
           >
             <Github size={18} />
@@ -54,7 +54,7 @@ const About = () => {
             href="https://x.com/aspects_ai"
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 rounded-full bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
+            className="p-2 rounded-full bg-transparent hover:bg-white/20 transition-colors text-white"
             aria-label="X Profile"
           >
             <XLogo />
@@ -63,7 +63,7 @@ const About = () => {
             href="mailto:team@aspects.studio"
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 rounded-full bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
+            className="p-2 rounded-full bg-transparent hover:bg-white/20 transition-colors text-white"
             aria-label="Email"
           >
             <Mail size={18} />
@@ -72,7 +72,7 @@ const About = () => {
       </div>
 
       {/* Cards Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {/* Privacy Policy Card */}
         <div className="bg-white dark:bg-neutral-800 rounded-xl p-5 shadow-2xs border border-neutral-200 dark:border-neutral-700 hover:border-green-300 dark:hover:border-green-700 transition-colors">
           <div className="flex items-center gap-3 mb-3">

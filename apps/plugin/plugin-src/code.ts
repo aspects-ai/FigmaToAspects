@@ -110,12 +110,12 @@ const safeRun = async (settings: PluginSettings) => {
       isLoading = false; // Make sure to reset the flag on error
       if (e && typeof e === "object" && "message" in e) {
         const error = e as Error;
-        console.log("error: ", error.stack);
+        console.error("error: ", error.stack);
         figma.ui.postMessage({ type: "error", error: error.message });
       } else {
         // Handle non-standard errors or unknown error types
         const errorMessage = String(e);
-        console.log("Unknown error: ", errorMessage);
+        console.error("Unknown error: ", errorMessage);
         figma.ui.postMessage({
           type: "error",
           error: errorMessage || "Unknown error occurred",
@@ -157,7 +157,6 @@ const safeExport = async (settings: PluginSettings) => {
       const fileData = stringToUint8Array(code);
 
       // Upload to backend
-      console.log("[export] Uploading file to backend...");
       const uploadedFiles = await backendClient.uploadFile(
         fileData as any,
         filename,
@@ -170,8 +169,6 @@ const safeExport = async (settings: PluginSettings) => {
 
       const attachmentId = uploadedFiles[0].id;
       const deepLinkUrl = `${webAppUrl}?attachmentPreloadIds=[${attachmentId}]`;
-
-      console.log("[export] Upload successful, deep link:", deepLinkUrl);
 
       // Notify UI of success
       figma.ui.postMessage({
@@ -241,7 +238,6 @@ const safeGenerateProject = async (
       const fileData = stringToUint8Array(code);
 
       // Upload to backend
-      console.log("[project-gen] Uploading file to backend...");
       const uploadedFiles = await backendClient.uploadFile(
         fileData as any,
         filename,
@@ -259,8 +255,6 @@ const safeGenerateProject = async (
         message: "Creating project...",
       });
 
-      console.log("[project-gen] Creating project...");
-
       // Get current user
       const user = await AuthStorage.getUser();
       if (!user) {
@@ -274,7 +268,12 @@ const safeGenerateProject = async (
         user.id
       );
 
-      console.log("[project-gen] Project created:", project.id);
+      // Create conversation for the project
+      const conversation = await backendClient.createConversation(
+        project.id,
+        user.id,
+        "Import from Figma"
+      );
 
       // Step 3: Start inference
       figma.ui.postMessage({
@@ -287,9 +286,9 @@ const safeGenerateProject = async (
       const inferenceContext =
         "This is a project exported directly from the user's Figma as HTML. This is a new project generation, which means you will have an starter composition in the compositions directory that you should use as a starting point. You should: 1. Decide on an appropriate dimensions for the project; 2. Update the manifest (dimensions, title, description); 3. Replace starter composition with the desired content; 4. Optionally, update the style-guide.yml file with an appropriate style guide for the project. Remember you can write multiple files at once so do this all in a single batch of tool calls.";
 
-      console.log("[project-gen] Starting inference...");
       await backendClient.performInference(
         project.id,
+        conversation.id,
         prompt,
         attachmentIds,
         inferenceContext
@@ -297,8 +296,6 @@ const safeGenerateProject = async (
 
       // Success! Construct deep link and open
       const deepLinkUrl = `${webAppUrl}/project/${project.id}`;
-
-      console.log("[project-gen] Generation successful, deep link:", deepLinkUrl);
 
       // Notify UI of success
       figma.ui.postMessage({
@@ -389,7 +386,6 @@ const initializeAuth = async () => {
         return await authTokenProvider.getAccessToken();
       } catch (error) {
         // User not authenticated, return undefined to allow unauthenticated requests
-        console.log("[auth] User not authenticated:", error);
         return undefined;
       }
     },
@@ -408,13 +404,6 @@ const initializeAuth = async () => {
       user: user,
     },
   });
-
-  console.log(
-    "[auth] Auth initialized, authenticated:",
-    isAuth,
-    "user:",
-    user?.email,
-  );
 };
 
 // Development helper: Auto-configure image upload from build-time constants
@@ -433,7 +422,7 @@ const configureImageUploadFromDevSettings = () => {
 };
 
 const standardMode = async () => {
-  figma.showUI(__html__, { width: 450, height: 700, themeColors: true });
+  figma.showUI(__html__, { width: 450, height: 550, themeColors: true });
   await initSettings();
 
   // Initialize auth system (production)
@@ -474,31 +463,25 @@ const standardMode = async () => {
     // Auth message handlers
     if (msg.type === "auth-initiate") {
       try {
-        console.log("[auth] Auth initiate requested");
-
         // PKCE challenge generated in UI thread
         const { challenge } = msg as AuthInitiateMessage;
 
         // Generate read key for polling
         const readKey = generateReadKey();
-        console.log("[auth] Generated read key for polling session");
 
         // Create OAuth session
         const { writeKey, expiresIn } = await oauthClient.createSession(
           "figma_plugin_v1",
           readKey,
         );
-        console.log(`[auth] Session created, expires in ${expiresIn} seconds`);
 
         // Build auth URL with write key in state parameter
         const authUrl = oauthClient.buildAuthUrl(challenge, writeKey);
-        console.log("[auth] Opening auth URL:", authUrl);
 
         // Open in browser
         figma.openExternal(authUrl);
 
         // Start polling for tokens
-        console.log("[auth] Starting to poll for authorization...");
         const { accessToken, refreshToken, user } =
           await oauthClient.pollForTokens(readKey, (status) => {
             // Send status updates to UI
@@ -516,8 +499,6 @@ const standardMode = async () => {
         });
         await AuthStorage.saveUser(user);
 
-        console.log("[auth] Auth complete, user:", user.email);
-
         // Notify UI
         figma.ui.postMessage({
           type: "auth-complete",
@@ -533,7 +514,6 @@ const standardMode = async () => {
       }
     } else if (msg.type === "logout") {
       try {
-        console.log("[auth] Logout requested");
         const tokens = await AuthStorage.getTokens();
         if (tokens) {
           await oauthClient.revokeToken(tokens.accessToken);
@@ -547,8 +527,6 @@ const standardMode = async () => {
             user: null,
           },
         });
-
-        console.log("[auth] Logout complete");
       } catch (error) {
         console.error("[auth] Logout error:", error);
         // Clear tokens anyway
@@ -566,13 +544,6 @@ const standardMode = async () => {
           user: user,
         },
       });
-
-      console.log(
-        "[auth] Auth status requested, authenticated:",
-        isAuth,
-        "user:",
-        user?.email,
-      );
     } else if (msg.type === "configure-image-upload") {
       const { config } = msg as ConfigureImageUploadMessage;
       const client = new AspectsBackendClient(config);
