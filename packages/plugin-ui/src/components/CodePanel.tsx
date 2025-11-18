@@ -1,3 +1,5 @@
+import { ChevronDown, ChevronUp } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Framework,
   HTMLPreview,
@@ -5,15 +7,13 @@ import {
   PluginSettings,
   SelectPreferenceOptions,
 } from "types";
-import { useMemo, useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import { PreviewButton } from "./PreviewButton";
-import { ExportButton } from "./ExportButton";
-import Preview from "./Preview";
-import SettingsGroup from "./SettingsGroup";
-import FrameworkTabs from "./FrameworkTabs";
-import { TailwindSettings } from "./TailwindSettings";
 import { cn } from "../lib/utils";
+import { ExportButton } from "./ExportButton";
+import FrameworkTabs from "./FrameworkTabs";
+import Preview from "./Preview";
+import { PreviewButton } from "./PreviewButton";
+import SettingsGroup from "./SettingsGroup";
+import { TailwindSettings } from "./TailwindSettings";
 
 interface CodePanelProps {
   code: string;
@@ -29,16 +29,17 @@ interface CodePanelProps {
   onPreviewRequest: () => void;
   onExportRequest: () => void;
   onPromptSubmit: (projectName: string, prompt: string) => void;
+  onFormChange?: () => void;
   isLoading: boolean;
   isExporting: boolean;
   exportSuccess: boolean;
   htmlPreview: HTMLPreview;
   previewExpanded: boolean;
-  setPreviewExpanded: (expanded: boolean) => void;
+  setPreviewExpanded: React.Dispatch<React.SetStateAction<boolean>>;
   previewViewMode: "desktop" | "mobile" | "precision";
-  setPreviewViewMode: (mode: "desktop" | "mobile" | "precision") => void;
+  setPreviewViewMode: React.Dispatch<React.SetStateAction<"desktop" | "mobile" | "precision">>;
   previewBgColor: "white" | "black";
-  setPreviewBgColor: (color: "white" | "black") => void;
+  setPreviewBgColor: React.Dispatch<React.SetStateAction<"white" | "black">>;
   defaultProjectName: string;
   projectGenerationLoading: boolean;
   projectGenerationError: string | null;
@@ -59,6 +60,7 @@ const CodePanel = (props: CodePanelProps) => {
     hasSelection,
     onPreviewRequest,
     onPromptSubmit,
+    onFormChange,
     isLoading,
     isExporting,
     exportSuccess,
@@ -78,11 +80,17 @@ const CodePanel = (props: CodePanelProps) => {
   const hasPreview = htmlPreview && htmlPreview.content;
 
   // Update project name when default changes
-  useState(() => {
-    if (defaultProjectName) {
+  useEffect(() => {
+    setProjectName(defaultProjectName);
+  }, [defaultProjectName]);
+
+  // Clear form fields on successful export
+  useEffect(() => {
+    if (exportSuccess) {
+      setPrompt("");
       setProjectName(defaultProjectName);
     }
-  });
+  }, [exportSuccess, defaultProjectName]);
 
   // Memoized preference groups
   const {
@@ -100,9 +108,9 @@ const CodePanel = (props: CodePanelProps) => {
       "roundTailwindValues",
       "roundTailwindColors",
       "useColorVariables",
-      "showLayerNames",
       "embedImages",
       "embedVectors",
+      "showLayerNames",
     ];
 
     return {
@@ -129,8 +137,8 @@ const CodePanel = (props: CodePanelProps) => {
     <div className="w-full flex flex-col gap-2 mt-2">
       {/* Preview Section */}
       <div className="flex flex-col bg-card border rounded-lg overflow-hidden">
-        <div className="flex items-center justify-between px-3 py-2 border-b dark:border-neutral-700">
-          <p className="text-sm font-medium dark:text-white">Preview</p>
+        <div className="flex items-center bg-foreground/80 justify-between px-3 py-2 border-b">
+          <p className="text-sm font-medium text-background">Preview Selection</p>
           <PreviewButton
             onPreview={onPreviewRequest}
             isLoading={isLoading}
@@ -172,7 +180,10 @@ const CodePanel = (props: CodePanelProps) => {
               id="projectName"
               type="text"
               value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
+              onChange={(e) => {
+                setProjectName(e.target.value);
+                onFormChange?.();
+              }}
               disabled={projectGenerationLoading}
               placeholder="Enter project name"
               className={cn(
@@ -195,7 +206,10 @@ const CodePanel = (props: CodePanelProps) => {
             <textarea
               id="prompt"
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={(e) => {
+                setPrompt(e.target.value);
+                onFormChange?.();
+              }}
               disabled={projectGenerationLoading}
               placeholder="Describe how you want to animate this design..."
               rows={3}
@@ -227,7 +241,7 @@ const CodePanel = (props: CodePanelProps) => {
       </div>
 
       {/* Export Options Section - Collapsible */}
-      <div className="flex flex-col bg-card border rounded-lg overflow-hidden">
+      <div className="flex flex-col bg-card border rounded-lg overflow-visible">
         <button
           onClick={() => setExportOptionsExpanded(!exportOptionsExpanded)}
           className="flex items-center justify-between px-3 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"

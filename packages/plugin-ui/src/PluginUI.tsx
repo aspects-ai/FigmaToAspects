@@ -1,28 +1,27 @@
 import copy from "copy-to-clipboard";
-import GradientsPanel from "./components/GradientsPanel";
-import ColorsPanel from "./components/ColorsPanel";
-import CodePanel from "./components/CodePanel";
-import About from "./components/About";
-import WarningsPanel from "./components/WarningsPanel";
+import { ChevronDown, ChevronUp, InfoIcon } from "lucide-react";
+import { useState } from "react";
 import {
+  AuthState,
   Framework,
   HTMLPreview,
   LinearGradientConversion,
   PluginSettings,
   SolidColorConversion,
   Warning,
-  AuthState,
 } from "types";
+import aspectsBanner from "../../../assets/aspects_banner.webp";
+import logoFull from "../../../assets/full_logo.svg";
 import {
   preferenceOptions,
   selectPreferenceOptions,
 } from "./codegenPreferenceOptions";
-import Loading from "./components/Loading";
-import { useState } from "react";
-import { InfoIcon, ChevronDown, ChevronUp } from "lucide-react";
-import React from "react";
-import logoFull from "../../../assets/full_logo.svg";
+import About from "./components/About";
 import { AuthStatusButton } from "./components/AuthStatusButton";
+import CodePanel from "./components/CodePanel";
+import ColorsPanel from "./components/ColorsPanel";
+import GradientsPanel from "./components/GradientsPanel";
+import WarningsPanel from "./components/WarningsPanel";
 
 type PluginUIProps = {
   code: string;
@@ -42,6 +41,7 @@ type PluginUIProps = {
   onPreviewRequest: () => void;
   onExportRequest: () => void;
   onPromptSubmit: (projectName: string, prompt: string) => void;
+  onFormChange?: () => void;
   isExporting: boolean;
   exportSuccess: boolean;
   authState: AuthState;
@@ -63,10 +63,7 @@ export const PluginUI = (props: PluginUIProps) => {
   const [previewBgColor, setPreviewBgColor] = useState<"white" | "black">(
     "white",
   );
-
-  // Removed full-screen loading - now handled inline in preview section
-
-  const isEmpty = props.code === "";
+  
   const warnings = props.warnings ?? [];
 
   // Check if we're in development mode (show warnings)
@@ -74,37 +71,47 @@ export const PluginUI = (props: PluginUIProps) => {
 
   return (
     <div className="flex flex-col h-full dark:text-white">
-      <div className="p-2 dark:bg-card">
-        <div className="flex justify-between items-center bg-muted dark:bg-card rounded-lg p-2">
-          <img src={logoFull} alt="Aspects" className="h-12 dark:invert" />
-          <div className="flex items-center gap-2">
-            <AuthStatusButton
-              isAuthenticated={props.authState.isAuthenticated}
-              user={props.authState.user}
-              onLogin={props.onLogin}
-              onLogout={props.onLogout}
-            />
-            <button
-              className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-medium ${
-                showAbout
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "bg-muted hover:bg-primary/90 hover:text-primary-foreground"
-              }`}
-              onClick={() => setShowAbout(!showAbout)}
-              aria-label="About"
-            >
-              <InfoIcon size={16} />
-            </button>
+      {/* Banner Header with background image */}
+      <div className="relative">
+        {/* Background layer with overflow hidden to clip the image */}
+        <div
+          className="absolute inset-0 overflow-hidden"
+          style={{
+            backgroundImage: `url(${aspectsBanner})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          {/* Blurred overlay */}
+          <div className="absolute inset-0 backdrop-blur-md bg-black/30"></div>
+        </div>
+
+        {/* Content on top with overflow visible for dropdown */}
+        <div className="relative p-3 my-1">
+          <div className="flex justify-between items-center">
+            <img src={logoFull} alt="Aspects" className="h-12 brightness-0 invert" />
+            <div className="flex items-center gap-2">
+              <AuthStatusButton
+                isAuthenticated={props.authState.isAuthenticated}
+                user={props.authState.user}
+                onLogin={props.onLogin}
+                onLogout={props.onLogout}
+              />
+              <button
+                className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-medium transition-all ${
+                  showAbout
+                    ? "bg-white/30 text-white shadow-xs backdrop-blur-sm"
+                    : "bg-transparent hover:bg-white/20 text-white"
+                }`}
+                onClick={() => setShowAbout(!showAbout)}
+                aria-label="About"
+              >
+                <InfoIcon size={16} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
-      <div
-        style={{
-          height: 1,
-          width: "100%",
-          backgroundColor: "rgba(255,255,255,0.12)",
-        }}
-      ></div>
       <div className="flex flex-col h-full overflow-y-auto">
         {showAbout ? (
           <About />
@@ -123,6 +130,7 @@ export const PluginUI = (props: PluginUIProps) => {
               onPreviewRequest={props.onPreviewRequest}
               onExportRequest={props.onExportRequest}
               onPromptSubmit={props.onPromptSubmit}
+              onFormChange={props.onFormChange}
               isLoading={props.isLoading}
               isExporting={props.isExporting}
               exportSuccess={props.exportSuccess}
@@ -132,7 +140,7 @@ export const PluginUI = (props: PluginUIProps) => {
               previewViewMode={previewViewMode}
               setPreviewViewMode={setPreviewViewMode}
               previewBgColor={previewBgColor}
-              setBgColor={setPreviewBgColor}
+              setPreviewBgColor={setPreviewBgColor}
               defaultProjectName={props.defaultProjectName}
               projectGenerationLoading={props.projectGenerationLoading}
               projectGenerationError={props.projectGenerationError}

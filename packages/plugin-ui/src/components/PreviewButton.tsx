@@ -27,11 +27,11 @@ export function PreviewButton({
           : "bg-muted hover:bg-muted/80 text-foreground border border-border",
         className
       )}
-      aria-label={isLoading ? "Generating preview..." : "Preview"}
+      aria-label={isLoading ? "Generating preview..." : "Generate Preview"}
     >
       <Eye className="h-4 w-4 mr-1.5" />
       <span className="font-medium">
-        {isLoading ? "Generating..." : "Preview"}
+        {isLoading ? "Generating..." : "Generate Preview"}
       </span>
     </button>
   );

@@ -1,41 +1,41 @@
+import {
+  generateCodeChallenge,
+  generateCodeVerifier,
+} from "auth";
 import copy from "copy-to-clipboard";
-import { PluginUI, AuthDialog } from "plugin-ui";
-import { downloadFile, generateHtmlFilename } from "plugin-ui/src/lib/utils";
+import { AuthDialog, PluginUI } from "plugin-ui";
 import { useEffect, useState } from "react";
 import {
+  AuthCompleteMessage,
+  AuthErrorMessage,
+  AuthPollingStatusMessage,
+  AuthState,
+  AuthStatusMessage,
   ConversionMessage,
   ErrorMessage,
+  ExportErrorMessage,
+  ExportSuccessMessage,
   Framework,
   HTMLPreview,
   LinearGradientConversion,
   Message,
   PluginSettings,
+  ProjectGenerationErrorMessage,
+  ProjectGenerationProgressMessage,
+  ProjectGenerationSuccessMessage,
+  SelectionStateMessage,
   SettingsChangedMessage,
   SolidColorConversion,
   Warning,
-  AuthState,
-  AuthCompleteMessage,
-  AuthErrorMessage,
-  AuthStatusMessage,
-  AuthPollingStatusMessage,
-  ExportSuccessMessage,
-  ExportErrorMessage,
-  ProjectGenerationProgressMessage,
-  ProjectGenerationSuccessMessage,
-  ProjectGenerationErrorMessage,
 } from "types";
 import {
+  postAuthInitiate,
+  postAuthStatusRequest,
   postExportRequest,
+  postLogout,
   postPreviewRequest,
   postUISettingsChangingMessage,
-  postAuthInitiate,
-  postLogout,
-  postAuthStatusRequest,
 } from "./messaging";
-import {
-  generateCodeChallenge,
-  generateCodeVerifier,
-} from "auth";
 
 interface AppState {
   code: string;
@@ -104,14 +104,6 @@ export default function App() {
       console.log("[ui] message received:", untypedMessage);
 
       switch (untypedMessage.type) {
-        case "conversionStart":
-          setState((prevState) => ({
-            ...prevState,
-            code: "",
-            isLoading: true,
-          }));
-          break;
-
         case "code":
           const conversionMessage = untypedMessage as ConversionMessage;
           setState((prevState) => {
@@ -186,11 +178,12 @@ export default function App() {
           break;
 
         case "selection-state":
-          const selectionMessage = untypedMessage as any;
+          const selectionMessage = untypedMessage as SelectionStateMessage;
           setState((prevState) => ({
             ...prevState,
             hasSelection: selectionMessage.hasSelection,
             defaultProjectName: selectionMessage.selectionName || "New Project",
+            exportSuccess: false, // Clear success state when selection changes
           }));
           break;
 
@@ -284,8 +277,11 @@ export default function App() {
 
           setState((prevState) => ({
             ...prevState,
+            isLoading: false,
+            isExporting: false,
             projectGenerationLoading: false,
             projectGenerationStage: null,
+            exportSuccess: true,
           }));
 
           // Show success briefly before dialog closes
@@ -299,13 +295,17 @@ export default function App() {
 
         case "project-generation-error":
           const generationErrorMessage = untypedMessage as ProjectGenerationErrorMessage;
+          console.error(generationErrorMessage);
           console.error("[ui] Project generation error:", generationErrorMessage.error);
 
           setState((prevState) => ({
             ...prevState,
+            isLoading: false,
+            isExporting: false,
             projectGenerationLoading: false,
             projectGenerationStage: null,
             projectGenerationError: generationErrorMessage.error,
+            exportSuccess: false,
           }));
           break;
 
@@ -347,6 +347,14 @@ export default function App() {
 
   const handlePreview = () => {
     console.log("[ui] Preview requested");
+
+    // Set loading state immediately when preview is requested
+    setState((prevState) => ({
+      ...prevState,
+      code: "",
+      isLoading: true,
+    }));
+
     postPreviewRequest({ targetOrigin: "*" });
   };
 
@@ -391,6 +399,15 @@ export default function App() {
     );
   };
 
+  const handleFormChange = () => {
+    // Clear success state when user modifies the form
+    if (state.exportSuccess) {
+      setState((prevState) => ({
+        ...prevState,
+        exportSuccess: false,
+      }));
+    }
+  };
 
   const handleLogin = async () => {
     console.log("[ui] Login requested");
@@ -468,6 +485,7 @@ export default function App() {
         onPreviewRequest={handlePreview}
         onExportRequest={handleExport}
         onPromptSubmit={handlePromptSubmit}
+        onFormChange={handleFormChange}
         isExporting={state.isExporting}
         exportSuccess={state.exportSuccess}
         authState={state.authState}

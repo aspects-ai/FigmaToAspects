@@ -1,36 +1,32 @@
-import { tailwindCodeGenTextStyles } from "./../../../packages/backend/src/tailwind/tailwindMain";
 import {
-  run,
+  AspectsOAuthClient,
+  AuthStorage,
+  authTokenProvider,
+  generateReadKey,
+} from "auth";
+import {
   flutterMain,
-  tailwindMain,
-  swiftuiMain,
   htmlMain,
-  composeMain,
   postSettingsChanged,
+  run,
+  swiftuiMain,
+  tailwindMain
 } from "backend";
 import { nodesToJSON } from "backend/src/altNodes/jsonNodeConversion";
+import { AspectsBackendClient } from "backend/src/common/aspectsBackendClient";
+import { imageUploadService } from "backend/src/common/imageUploadService";
 import { convertToCode } from "backend/src/common/retrieveUI/convertToCode";
 import { retrieveGenericSolidUIColors } from "backend/src/common/retrieveUI/retrieveColors";
 import { flutterCodeGenTextStyles } from "backend/src/flutter/flutterMain";
 import { htmlCodeGenTextStyles } from "backend/src/html/htmlMain";
 import { swiftUICodeGenTextStyles } from "backend/src/swiftui/swiftuiMain";
-import { composeCodeGenTextStyles } from "backend/src/compose/composeMain";
 import {
-  PluginSettings,
-  SettingWillChangeMessage,
-  ConfigureImageUploadMessage,
-  AspectsBackendConfig,
   AuthInitiateMessage,
-  LogoutMessage,
+  ConfigureImageUploadMessage,
+  PluginSettings,
+  SettingWillChangeMessage
 } from "types";
-import { imageUploadService } from "backend/src/common/imageUploadService";
-import { AspectsBackendClient } from "backend/src/common/aspectsBackendClient";
-import {
-  AuthStorage,
-  AspectsOAuthClient,
-  authTokenProvider,
-  generateReadKey,
-} from "auth";
+import { tailwindCodeGenTextStyles } from "./../../../packages/backend/src/tailwind/tailwindMain";
 
 let userPluginSettings: PluginSettings;
 
@@ -289,7 +285,7 @@ const safeGenerateProject = async (
 
       const attachmentIds = uploadedFiles.map((file) => file.id);
       const inferenceContext =
-        "This is a project exported directly from the user's Figma as HTML.";
+        "This is a project exported directly from the user's Figma as HTML. This is a new project generation, which means you will have an starter composition in the compositions directory that you should use as a starting point. You should: 1. Decide on an appropriate dimensions for the project; 2. Update the manifest (dimensions, title, description); 3. Replace starter composition with the desired content; 4. Optionally, update the style-guide.yml file with an appropriate style guide for the project. Remember you can write multiple files at once so do this all in a single batch of tool calls.";
 
       console.log("[project-gen] Starting inference...");
       await backendClient.performInference(
@@ -321,8 +317,19 @@ const safeGenerateProject = async (
       isLoading = false;
       console.error("[project-gen] Generation failed:", e);
 
-      // Determine which stage failed
-      const errorMessage = e instanceof Error ? e.message : String(e);
+      // Determine which stage failed and extract error message
+      let errorMessage: string;
+      if (e instanceof Error) {
+        errorMessage = e.message;
+      } else if (typeof e === "string") {
+        errorMessage = e;
+      } else if (e && typeof e === "object") {
+        // Try to extract meaningful error info from object
+        errorMessage = JSON.stringify(e);
+      } else {
+        errorMessage = "An unknown error occurred";
+      }
+
       let stage = "unknown";
       if (errorMessage.includes("upload")) stage = "uploading";
       else if (errorMessage.includes("project")) stage = "creating";

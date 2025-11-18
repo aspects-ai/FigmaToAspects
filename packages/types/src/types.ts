@@ -131,7 +131,8 @@ export interface UserInfoResponse extends AuthUser {
 
 export interface HTMLSettings {
   showLayerNames: boolean;
-  imageUploadMode: 'upload' | 'placeholder';
+  imageUploadMode?: 'upload' | 'placeholder'; // Legacy, being replaced by embedImages
+  embedImages: boolean;
   embedVectors: boolean;
   useColorVariables: boolean;
   htmlGenerationMode: "html" | "jsx" | "styled-components" | "svelte";

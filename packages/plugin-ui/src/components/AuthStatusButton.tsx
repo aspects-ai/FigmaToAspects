@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { LogIn, User, LogOut } from "lucide-react";
-import { cn } from "../lib/utils";
+import { LogIn, LogOut, User } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type { AuthUser } from "types";
+import { cn } from "../lib/utils";
 
 interface AuthStatusButtonProps {
   isAuthenticated: boolean;
@@ -41,8 +41,8 @@ export function AuthStatusButton({
       <button
         onClick={onLogin}
         className={cn(
-          "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
-          "bg-foreground text-background hover:bg-foreground/90",
+          "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors",
+          "bg-transparent text-white hover:bg-white/20",
         )}
         aria-label="Log in"
       >
@@ -60,31 +60,31 @@ export function AuthStatusButton({
         className={cn(
           "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
           showMenu
-            ? "bg-primary text-primary-foreground shadow-xs"
-            : "bg-muted hover:bg-primary/90 hover:text-primary-foreground",
+            ? "bg-white/30 text-white shadow-xs backdrop-blur-sm"
+            : "bg-transparent hover:bg-white/20 text-white",
         )}
         aria-label="Account menu"
       >
-        <User size={14} />
+        <User size={16} />
         <span className="max-w-[140px] truncate">{user?.name || user?.email}</span>
       </button>
 
       {/* Dropdown menu */}
       {showMenu && (
-        <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-neutral-900 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-neutral-900 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden" style={{ zIndex: 9999 }}>
           {/* User info section */}
           <div className="px-3 py-2.5 border-b border-neutral-200 dark:border-neutral-700">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
                 <User size={16} className="text-purple-600 dark:text-purple-300" />
               </div>
               <div className="flex-1 min-w-0">
                 {user?.name && (
-                  <div className="text-xs font-medium text-neutral-900 dark:text-neutral-100 truncate">
+                  <div className="text-s mfont-medium text-neutral-900 dark:text-neutral-100 truncate">
                     {user.name}
                   </div>
                 )}
-                <div className="text-xs text-neutral-600 dark:text-neutral-400 truncate">
+                <div className="text-sm text-neutral-600 dark:text-neutral-400 truncate">
                   {user?.email}
                 </div>
               </div>
@@ -103,7 +103,7 @@ export function AuthStatusButton({
                 "text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30",
               )}
             >
-              <LogOut size={14} />
+              <LogOut size={16} />
               <span>Log Out</span>
             </button>
           </div>

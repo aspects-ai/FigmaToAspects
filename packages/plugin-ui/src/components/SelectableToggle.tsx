@@ -29,39 +29,30 @@ const SelectableToggle = ({
     <div className="relative inline-block">
       <button
         onClick={handleClick}
-        className={cn(
-          `h-8 px-2 flex items-center justify-center rounded-md transition-all duration-200 border`,
-          isSelected
-            ? `${buttonClass} text-white shadow-2xs border-transparent`
-            : "bg-muted hover:bg-neutral-200 dark:hover:bg-neutral-700 text-muted-foreground border",
-        )}
+        className="h-8 px-2 flex items-center justify-center transition-all duration-200"
       >
-        <div className="flex items-center gap-2 text-muted-foreground">
+        <div className="flex items-center gap-2">
           <div
-            className={`h-4 w-4 shrink-0 flex items-center justify-center rounded-md transition-all duration-200 border ${
+            className={cn(
+              "h-4 w-4 shrink-0 flex items-center justify-center rounded transition-all duration-200 border-2",
               isSelected
-                ? `${checkClass}`
-                : "bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-600"
-            }`}
+                ? "bg-accent border-accent"
+                : "bg-transparent border-neutral-300 dark:border-neutral-600"
+            )}
           >
             {isSelected && (
-              <Check size={10} className="text-white dark:text-black" />
+              <Check size={10} className="text-white" strokeWidth={3} />
             )}
           </div>
 
-          <span
-            className={cn(
-              "text-sm font-medium whitespace-nowrap",
-              isSelected && "text-foreground",
-            )}
-          >
+          <span className="text-sm font-medium whitespace-nowrap text-foreground">
             {title}
           </span>
 
           {/* Help icon for description */}
           {description && (
             <div
-              className="hover:text-foreground transition-opacity cursor-help"
+              className="text-muted-foreground hover:text-foreground transition-colors cursor-help"
               onMouseEnter={() => setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
             >
@@ -73,7 +64,10 @@ const SelectableToggle = ({
 
       {/* Enhanced tooltip */}
       {showTooltip && description && (
-        <div className="absolute z-10 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 px-3 py-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 text-xs">
+        <div
+          className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 px-3 py-2 bg-white dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 text-xs pointer-events-none"
+          style={{ zIndex: 10000 }}
+        >
           <p className="text-neutral-700 dark:text-neutral-200">
             {description}
           </p>

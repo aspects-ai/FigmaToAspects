@@ -3,14 +3,6 @@ import { LocalCodegenPreferenceOptions, SelectPreferenceOptions } from "types";
 export const preferenceOptions: LocalCodegenPreferenceOptions[] = [
   {
     itemType: "individual_select",
-    propertyName: "showLayerNames",
-    label: "Layer names",
-    description: "Include Figma layer names in classes.",
-    isDefault: false,
-    includedLanguages: ["HTML"],
-  },
-  {
-    itemType: "individual_select",
     propertyName: "useColorVariables",
     label: "Color Variables",
     description:
@@ -27,17 +19,23 @@ export const preferenceOptions: LocalCodegenPreferenceOptions[] = [
     isDefault: true,
     includedLanguages: ["HTML"],
   },
-];
-
-export const selectPreferenceOptions: SelectPreferenceOptions[] = [
   {
-    itemType: "select",
-    propertyName: "imageUploadMode",
-    label: "Image Handling",
-    options: [
-      { label: "Embed Images", value: "upload", isDefault: true },
-      { label: "Use Image Placeholders", value: "placeholder" },
-    ],
+    itemType: "individual_select",
+    propertyName: "embedImages",
+    label: "Embed Images",
+    description:
+      "Enable this to embed images directly in the code. If unchecked, image placeholders will be used instead.",
+    isDefault: true,
+    includedLanguages: ["HTML"],
+  },
+  {
+    itemType: "individual_select",
+    propertyName: "showLayerNames",
+    label: "Layer names",
+    description: "Include Figma layer names in classes.",
+    isDefault: false,
     includedLanguages: ["HTML"],
   },
 ];
+
+export const selectPreferenceOptions: SelectPreferenceOptions[] = [];
