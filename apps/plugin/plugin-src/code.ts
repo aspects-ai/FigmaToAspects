@@ -366,7 +366,7 @@ const initializeAuth = async () => {
   // Initialize OAuth client
   // For polling flow: redirect URI is used to reactivate Figma after auth
   // The actual tokens come via polling, not from the redirect
-  const redirectUri = "figma://plugin/842128343887142055/callback";
+  const redirectUri = "figma://plugin/1573793526647744572/callback";
 
   oauthClient = new AspectsOAuthClient({
     webAppUrl,
