@@ -281,10 +281,11 @@ export default function App() {
             isExporting: false,
             projectGenerationLoading: false,
             projectGenerationStage: null,
+            projectGenerationError: null, // Clear any previous error
             exportSuccess: true,
           }));
 
-          // Show success briefly before dialog closes
+          // Show success state briefly before reverting to allow another submission
           setTimeout(() => {
             setState((prevState) => ({
               ...prevState,

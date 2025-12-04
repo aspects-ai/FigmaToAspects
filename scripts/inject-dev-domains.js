@@ -51,7 +51,8 @@ try {
 
   // Parse .env.local
   const env = parseEnvFile(ENV_FILE);
-  const devDomainsStr = env.ALLOWED_DOMAINS || '';
+  const domainsStr = env.ALLOWED_DOMAINS || '';
+  const devDomainsStr = env.DEV_ALLOWED_DOMAINS || '';
 
   // Parse comma-separated domains
   let devDomains = [];
@@ -61,7 +62,20 @@ try {
       .map(d => d.trim())
       .filter(d => d.length > 0);
 
-    console.log('✓ Found allowed domains:', devDomains.join(', '));
+    console.log('✓ Found allowed dev domains:', devDomains.join(', '));
+  } else {
+    console.log('⚠️  Warning: DEV_ALLOWED_DOMAINS not set in .env.local');
+    console.log('   Network requests will be blocked in dev mode\n');
+  }
+
+  let domains = [];
+  if (domainsStr) {
+    domains = domainsStr
+      .split(',')
+      .map(d => d.trim())
+      .filter(d => d.length > 0);
+
+    console.log('✓ Found allowed domains:', domains.join(', '));
   } else {
     console.log('⚠️  Warning: ALLOWED_DOMAINS not set in .env.local');
     console.log('   Network requests will be blocked in dev mode\n');
@@ -74,7 +88,8 @@ try {
     manifest.networkAccess = {};
   }
 
-  manifest.networkAccess.allowedDomains = devDomains;
+  manifest.networkAccess.devAllowedDomains = devDomains;
+  manifest.networkAccess.allowedDomains = domains;
 
   // Write generated manifest
   fs.writeFileSync(MANIFEST_FILE, JSON.stringify(manifest, null, 2) + '\n');

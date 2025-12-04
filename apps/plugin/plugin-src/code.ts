@@ -492,8 +492,8 @@ const standardMode = async () => {
     } else if (msg.type === "logout") {
       try {
         const tokens = await AuthStorage.getTokens();
-        if (tokens) {
-          await oauthClient.revokeToken(tokens.accessToken);
+        if (tokens?.refreshToken) {
+          await oauthClient.revokeToken(tokens.refreshToken);
         }
         await AuthStorage.clearAll();
 

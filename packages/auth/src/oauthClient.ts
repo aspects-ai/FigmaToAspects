@@ -230,15 +230,16 @@ export class AspectsOAuthClient {
   }
 
   /**
-   * Revoke access token (logout)
+   * Revoke refresh token (logout)
    */
-  async revokeToken(accessToken: string): Promise<void> {
+  async revokeToken(refreshToken: string): Promise<void> {
     try {
       await fetch(`${this.config.apiUrl}/oauth/revoke`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({ refreshToken }),
       });
     } catch (error) {
       // Best-effort logout - don't throw

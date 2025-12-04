@@ -26,6 +26,9 @@ export function ExportButton({
       setLocalSuccess(true);
       const timer = setTimeout(() => setLocalSuccess(false), 2000);
       return () => clearTimeout(timer);
+    } else {
+      // Reset local success state when parent clears showSuccess
+      setLocalSuccess(false);
     }
   }, [showSuccess]);
 
