@@ -29,16 +29,14 @@ if (fs.existsSync(envPath)) {
 // Build define flags for esbuild
 const defines = [];
 
-if (process.env.DEV_BACKEND_URL) {
-  defines.push(`--define:DEV_BACKEND_URL='"${process.env.DEV_BACKEND_URL}"'`);
-  console.log('[build-dev] DEV_BACKEND_URL:', process.env.DEV_BACKEND_URL);
+if (process.env.ASPECTS_BACKEND_URL) {
+  defines.push(`--define:ASPECTS_BACKEND_URL='"${process.env.ASPECTS_BACKEND_URL}"'`);
+  console.log('[build-dev] ASPECTS_BACKEND_URL:', process.env.ASPECTS_BACKEND_URL);
 }
 
-if (process.env.DEV_AUTH_TOKEN) {
-  const token = process.env.DEV_AUTH_TOKEN;
-  const preview = token.length > 20 ? token.substring(0, 20) + '...' : token;
-  defines.push(`--define:DEV_AUTH_TOKEN='"${token}"'`);
-  console.log('[build-dev] DEV_AUTH_TOKEN:', preview);
+if (process.env.WEB_APP_URL) {
+  defines.push(`--define:WEB_APP_URL='"${process.env.WEB_APP_URL}"'`);
+  console.log('[build-dev] WEB_APP_URL:', process.env.WEB_APP_URL);
 }
 
 // Check if --watch flag was passed

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Injects DEV_ALLOWED_DOMAINS from .env.local into manifest.json
+ * Injects ALLOWED_DOMAINS from .env.local into manifest.json
  * Run before dev builds to configure network access dynamically
  */
 
@@ -18,7 +18,7 @@ const MANIFEST_FILE = path.join(PROJECT_ROOT, 'manifest.json');
 function parseEnvFile(filePath) {
   if (!fs.existsSync(filePath)) {
     console.error('❌ Error: .env.local not found');
-    console.log('Create .env.local from .env.local.example and configure DEV_ALLOWED_DOMAINS');
+    console.log('Create .env.local from .env.local.example and configure ALLOWED_DOMAINS');
     process.exit(1);
   }
 
@@ -51,7 +51,7 @@ try {
 
   // Parse .env.local
   const env = parseEnvFile(ENV_FILE);
-  const devDomainsStr = env.DEV_ALLOWED_DOMAINS || '';
+  const devDomainsStr = env.ALLOWED_DOMAINS || '';
 
   // Parse comma-separated domains
   let devDomains = [];
@@ -63,7 +63,7 @@ try {
 
     console.log('✓ Found allowed domains:', devDomains.join(', '));
   } else {
-    console.log('⚠️  Warning: DEV_ALLOWED_DOMAINS not set in .env.local');
+    console.log('⚠️  Warning: ALLOWED_DOMAINS not set in .env.local');
     console.log('   Network requests will be blocked in dev mode\n');
   }
 
@@ -74,12 +74,12 @@ try {
     manifest.networkAccess = {};
   }
 
-  manifest.networkAccess.devAllowedDomains = devDomains;
+  manifest.networkAccess.allowedDomains = devDomains;
 
   // Write generated manifest
   fs.writeFileSync(MANIFEST_FILE, JSON.stringify(manifest, null, 2) + '\n');
 
-  console.log('✅ Generated manifest.json with devAllowedDomains\n');
+  console.log('✅ Generated manifest.json with allowedDomains\n');
 } catch (error) {
   console.error('❌ Error:', error.message);
   process.exit(1);

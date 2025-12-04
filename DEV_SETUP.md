@@ -8,14 +8,6 @@
    ```
 
 2. **Configure your environment variables** in `.env.local`:
-   ```bash
-   # Backend API configuration
-   DEV_BACKEND_URL=http://localhost:5003
-   DEV_AUTH_TOKEN=your-dev-token-here
-
-   # Allowed domains for network access (comma-separated)
-   DEV_ALLOWED_DOMAINS=http://localhost,http://localhost:5003,https://noodleaidev.blob.core.windows.net
-   ```
 
 3. **Run the dev build**:
    ```bash
@@ -23,20 +15,19 @@
    ```
 
    This will:
-   - Inject `DEV_ALLOWED_DOMAINS` into `manifest.json`
+   - Inject environemnt variables into `manifest.json`
    - Build the plugin with dev credentials (from `.env.local`)
    - Start watch mode for auto-rebuild
 
 ## What Gets Injected?
 
 ### 1. Manifest Network Access
-The script generates `manifest.json` from `manifest.template.json` and injects `DEV_ALLOWED_DOMAINS` from `.env.local`:
+The script generates `manifest.json` from `manifest.template.json` and injects `ALLOWED_DOMAINS` from `.env.local`:
 
 ```json
 {
   "networkAccess": {
-    "allowedDomains": ["none"],
-    "devAllowedDomains": ["http://localhost:5003", "https://..."]
+    "allowedDomains": ["http://localhost:5003", "https://..."]
   }
 }
 ```
@@ -46,12 +37,12 @@ This allows the plugin to make network requests to your backend and storage in d
 **Note**: `manifest.json` is gitignored. Always edit `manifest.template.json` for structural changes.
 
 ### 2. Build-Time Constants
-The build script reads `DEV_BACKEND_URL` and `DEV_AUTH_TOKEN` and injects them as compile-time constants using esbuild's `--define` flag:
+The build script reads environment variables and injects them as compile-time constants using esbuild's `--define` flag:
 
 ```typescript
 // These are replaced at build time
-declare const DEV_BACKEND_URL: string | undefined;
-declare const DEV_AUTH_TOKEN: string | undefined;
+declare const ASPECTS_BACKEND_URL: string | undefined;
+declare const WEB_APP_URL: string | undefined;
 ```
 
 The plugin auto-configures image upload on load if these constants are defined.
@@ -74,13 +65,13 @@ Production builds (`pnpm build`) don't use `.env.local` or inject dev domains:
 ## Troubleshooting
 
 ### Network requests blocked
-- Ensure `DEV_ALLOWED_DOMAINS` includes your backend URL and storage domain
+- Ensure `ALLOWED_DOMAINS` includes your backend URL and storage domain
 - Check that `manifest.json` was generated with correct `devAllowedDomains` after running `pnpm dev:plugin`
 - Verify the domains match exactly (including protocol: http vs https)
 - If `manifest.json` doesn't exist, run `pnpm dev:plugin` to generate it
 
 ### Image upload not working
-- Check `.env.local` has correct `DEV_BACKEND_URL` and `DEV_AUTH_TOKEN`
+- Check `.env.local` has correct `ASPECTS_BACKEND_URL` and `WEB_APP_URL`
 - Ensure you're using `pnpm dev:plugin` (not `pnpm dev`)
 - Backend must have CORS configured to allow `origin: null` (Figma plugin origin)
 

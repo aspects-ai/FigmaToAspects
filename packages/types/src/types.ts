@@ -82,7 +82,7 @@ export interface AspectsBackendConfig {
    * Bearer token for authentication (can be a function for dynamic tokens)
    * Optional - if not provided, requests will be unauthenticated for preview/anonymous uploads
    */
-  getAuthToken?: (() => Promise<string>) | (() => string) | string;
+  getAuthToken: (() => Promise<string | undefined>) | (() => string | undefined);
 
   /**
    * Optional custom headers to include in requests
@@ -169,10 +169,10 @@ export interface ComposeSettings {
 }
 export interface PluginSettings
   extends HTMLSettings,
-    TailwindSettings,
-    FlutterSettings,
-    SwiftUISettings,
-    ComposeSettings {
+  TailwindSettings,
+  FlutterSettings,
+  SwiftUISettings,
+  ComposeSettings {
   framework: Framework;
   useOldPluginVersion2025: boolean;
   responsiveRoot: boolean;

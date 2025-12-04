@@ -161,7 +161,7 @@ export class AspectsBackendClient {
     if (typeof token === "string") {
       return token;
     } else if (typeof token === "function") {
-      return await token();
+      return await token() || null;
     }
 
     throw new Error("Invalid getAuthToken configuration");

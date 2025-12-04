@@ -59,6 +59,7 @@ export const defaultPluginSettings: PluginSettings = {
   useTailwind4: false,
   thresholdPercent: 15,
   baseFontFamily: "",
+  embedImages: true
 };
 
 // A helper type guard to ensure the key belongs to the PluginSettings type
@@ -77,7 +78,7 @@ const getUserSettings = async () => {
         isKeyOfPluginSettings(key) &&
         key in possiblePluginSrcSettings &&
         typeof possiblePluginSrcSettings[key] ===
-          typeof defaultPluginSettings[key]
+        typeof defaultPluginSettings[key]
       ) {
         validSettings[key] = possiblePluginSrcSettings[key] as any;
       }
@@ -343,8 +344,8 @@ const safeGenerateProject = async (
 };
 
 // Development configuration: These will be replaced at build time by esbuild --define
-declare const DEV_BACKEND_URL: string | undefined;
-declare const DEV_AUTH_TOKEN: string | undefined;
+declare const ASPECTS_BACKEND_URL: string;
+declare const WEB_APP_URL: string;
 
 // OAuth client instance
 let oauthClient: AspectsOAuthClient;
@@ -355,22 +356,16 @@ let webAppUrl: string;
 
 // Initialize auth system
 const initializeAuth = async () => {
-  const isDevelopment = typeof DEV_BACKEND_URL !== "undefined";
-  webAppUrl = isDevelopment
-    ? "http://localhost:3003"
-    : "https://aspects.ai";
-  const apiUrl = isDevelopment
-    ? DEV_BACKEND_URL
-    : "https://api.aspects.ai";
-
   // Initialize OAuth client
   // For polling flow: redirect URI is used to reactivate Figma after auth
   // The actual tokens come via polling, not from the redirect
   const redirectUri = "figma://plugin/1573793526647744572/callback";
 
+  webAppUrl = WEB_APP_URL;
+
   oauthClient = new AspectsOAuthClient({
     webAppUrl,
-    apiUrl,
+    apiUrl: ASPECTS_BACKEND_URL,
     clientId: "figma_plugin_v1",
     redirectUri,
   });
@@ -380,7 +375,7 @@ const initializeAuth = async () => {
 
   // Configure backend client with auth
   backendClient = new AspectsBackendClient({
-    baseUrl: apiUrl,
+    baseUrl: ASPECTS_BACKEND_URL,
     getAuthToken: async () => {
       try {
         return await authTokenProvider.getAccessToken();
@@ -406,30 +401,12 @@ const initializeAuth = async () => {
   });
 };
 
-// Development helper: Auto-configure image upload from build-time constants
-const configureImageUploadFromDevSettings = () => {
-  // Check if build-time dev constants are defined
-  if (
-    typeof DEV_BACKEND_URL !== "undefined" &&
-    typeof DEV_AUTH_TOKEN !== "undefined"
-  ) {
-    const client = new AspectsBackendClient({
-      baseUrl: DEV_BACKEND_URL,
-      getAuthToken: DEV_AUTH_TOKEN,
-    });
-    imageUploadService.configure(client);
-  }
-};
-
 const standardMode = async () => {
   figma.showUI(__html__, { width: 450, height: 550, themeColors: true });
   await initSettings();
 
   // Initialize auth system (production)
   await initializeAuth();
-
-  // Auto-configure image upload if dev config is set at build time (dev override)
-  configureImageUploadFromDevSettings();
 
   // Send initial selection state to UI
   const initialSelection = figma.currentPage.selection;
