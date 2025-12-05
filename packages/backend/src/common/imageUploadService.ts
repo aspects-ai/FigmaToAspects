@@ -3,10 +3,10 @@ import {
   ExportableNode,
   ImageUploadRequest,
 } from "types";
-import { exportAsyncProxy } from "./exportAsyncProxy";
-import { addWarning } from "./commonConversionWarnings";
-import { getPlaceholderImage } from "./images";
 import { AspectsBackendClient } from "./aspectsBackendClient";
+import { addWarning } from "./commonConversionWarnings";
+import { exportAsyncProxy } from "./exportAsyncProxy";
+import { getPlaceholderImage } from "./images";
 
 interface UploadedImage {
   url: string;
@@ -111,8 +111,6 @@ export class ImageUploadService {
 
       // 5. Cache the public URL
       this.cache.set(node.id, publicUrl);
-
-      addWarning(`Images uploaded to external storage`);
 
       return publicUrl;
     } catch (error) {
