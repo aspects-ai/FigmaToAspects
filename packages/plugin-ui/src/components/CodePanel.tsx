@@ -5,6 +5,7 @@ import {
   HTMLPreview,
   LocalCodegenPreferenceOptions,
   PluginSettings,
+  ScreenshotData,
   SelectPreferenceOptions,
 } from "types";
 import aspectsBanner from "../../../../assets/aspects_banner.webp";
@@ -27,6 +28,7 @@ interface CodePanelProps {
     value: boolean | string | number,
   ) => void;
   hasSelection: boolean;
+  selectionCount: number;
   onPreviewRequest: () => void;
   onExportRequest: () => void;
   onPromptSubmit: (projectName: string, prompt: string) => void;
@@ -35,6 +37,7 @@ interface CodePanelProps {
   isExporting: boolean;
   exportSuccess: boolean;
   htmlPreview: HTMLPreview;
+  screenshotPreviews: ScreenshotData[] | null;
   previewExpanded: boolean;
   setPreviewExpanded: React.Dispatch<React.SetStateAction<boolean>>;
   previewViewMode: "desktop" | "mobile" | "precision";
@@ -59,6 +62,7 @@ const CodePanel = (props: CodePanelProps) => {
     settings,
     onPreferenceChanged,
     hasSelection,
+    selectionCount,
     onPreviewRequest,
     onPromptSubmit,
     onFormChange,
@@ -66,6 +70,7 @@ const CodePanel = (props: CodePanelProps) => {
     isExporting,
     exportSuccess,
     htmlPreview,
+    screenshotPreviews,
     previewExpanded,
     setPreviewExpanded,
     previewViewMode,
@@ -197,6 +202,14 @@ const CodePanel = (props: CodePanelProps) => {
             />
           </div>
 
+          {selectionCount > 3 && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+              <p className="text-sm text-amber-600 dark:text-amber-400 leading-relaxed">
+                Please select a maximum of 3 elements. Currently selected: {selectionCount}
+              </p>
+            </div>
+          )}
+
           {projectGenerationError && (
             <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
               <p className="text-sm text-red-600 dark:text-red-400 leading-relaxed">
@@ -209,15 +222,54 @@ const CodePanel = (props: CodePanelProps) => {
             <ExportButton
               onExport={handleSubmit as any}
               isLoading={isExporting || projectGenerationLoading}
-              disabled={!hasSelection || !prompt.trim() || !projectName.trim()}
+              disabled={!hasSelection || selectionCount > 3 || !prompt.trim() || !projectName.trim()}
               showSuccess={exportSuccess}
             />
           </div>
         </form>
       </div>
 
-      {/* Preview Section */}
-      <div className="flex flex-col bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-2xs overflow-hidden">
+      {/* Screenshot Preview Section - Shows automatically when selection exists */}
+      {screenshotPreviews && screenshotPreviews.length > 0 && (
+        <div className="flex flex-col bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-2xs overflow-hidden">
+          <div className="p-3">
+            <div className={cn(
+              "flex gap-2 justify-center items-center",
+              screenshotPreviews.length > 1 ? "flex-wrap" : ""
+            )}>
+              {screenshotPreviews.map((screenshot, index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    "relative bg-neutral-100 dark:bg-neutral-900 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700",
+                    screenshotPreviews.length === 1 ? "w-full" : "flex-shrink-0"
+                  )}
+                  style={{
+                    maxWidth: screenshotPreviews.length === 1 ? undefined : '120px',
+                  }}
+                >
+                  <img
+                    src={`data:image/png;base64,${screenshot.base64}`}
+                    alt={`Selection ${index + 1}`}
+                    className={cn(
+                      "object-contain",
+                      screenshotPreviews.length === 1 ? "w-full max-h-[180px]" : "w-full h-full max-h-[100px]"
+                    )}
+                  />
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center mt-2">
+              {screenshotPreviews.length === 1
+                ? `${Math.round(screenshotPreviews[0].width)}×${Math.round(screenshotPreviews[0].height)}px`
+                : `${screenshotPreviews.length} elements selected`}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Old HTML Preview Section - Kept for future use */}
+      {/* <div className="flex flex-col bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 shadow-2xs overflow-hidden">
         <div className="flex justify-end p-5">
           <PreviewButton
             onPreview={onPreviewRequest}
@@ -250,7 +302,7 @@ const CodePanel = (props: CodePanelProps) => {
             ) : null}
           </>
         )}
-      </div>
+      </div> */}
 
       {/* Export Options Section - Hidden */}
       {/* <div className="flex flex-col bg-card border rounded-lg overflow-visible">

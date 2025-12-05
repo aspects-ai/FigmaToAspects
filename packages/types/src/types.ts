@@ -220,7 +220,21 @@ export type SelectionStateMessage = Message & {
   type: "selection-state";
   hasSelection: boolean;
   selectionName: string;
+  selectionCount: number;
 };
+
+export interface ScreenshotData {
+  base64: string;
+  width: number;
+  height: number;
+}
+
+export type ScreenshotPreviewMessage = Message & {
+  type: "screenshot-preview";
+  screenshots: ScreenshotData[] | null;
+  size: { width: number; height: number };
+};
+
 export type ConfigureImageUploadMessage = Message & {
   type: "configure-image-upload";
   config: AspectsBackendConfig;

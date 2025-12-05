@@ -72,13 +72,11 @@ export class AspectsBackendClient {
   }
 
   /**
-   * Upload a file as an attachment to the backend
+   * Upload multiple files as attachments to the backend
    * Note: Works in Figma plugin sandbox by manually constructing multipart form data
    */
-  async uploadFile(
-    file: Blob | Uint8Array,
-    filename: string,
-    description: string,
+  async uploadFiles(
+    files: Array<{ data: Uint8Array; filename: string; description: string }>,
   ): Promise<FileAttachment[]> {
     const authToken = await this.getAuthToken();
 
@@ -86,31 +84,30 @@ export class AspectsBackendClient {
       throw new Error("Authentication required to upload files");
     }
 
+    if (files.length === 0) {
+      throw new Error("No files to upload");
+    }
+
     // Manually construct multipart/form-data since FormData is not available in Figma sandbox
     const boundary = `----WebKitFormBoundary${Math.random().toString(36).substring(2)}`;
 
-    // Convert file to Uint8Array if it's a Blob
-    let fileBytes: Uint8Array;
-    if (file instanceof Uint8Array) {
-      fileBytes = file;
-    } else {
-      // This path won't execute in Figma sandbox, but kept for completeness
-      const arrayBuffer = await file.arrayBuffer();
-      fileBytes = new Uint8Array(arrayBuffer);
-    }
-
     // Build the multipart body manually
     const parts: Uint8Array[] = [];
+    const CRLF = new Uint8Array([13, 10]); // \r\n
 
-    // File field
-    const fileHeader = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: text/html\r\n\r\n`;
-    parts.push(new Uint8Array(Array.from(fileHeader).map(c => c.charCodeAt(0))));
-    parts.push(fileBytes);
-    parts.push(new Uint8Array([13, 10])); // \r\n
+    // Add each file field
+    for (const file of files) {
+      const fileHeader = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${file.filename}"\r\nContent-Type: text/html\r\n\r\n`;
+      parts.push(new Uint8Array(Array.from(fileHeader).map(c => c.charCodeAt(0))));
+      parts.push(file.data);
+      parts.push(CRLF);
+    }
 
-    // Descriptions field
-    const descHeader = `--${boundary}\r\nContent-Disposition: form-data; name="descriptions"\r\n\r\n${description}\r\n`;
-    parts.push(new Uint8Array(Array.from(descHeader).map(c => c.charCodeAt(0))));
+    // Add each description field (must match the number of files)
+    for (const file of files) {
+      const descHeader = `--${boundary}\r\nContent-Disposition: form-data; name="descriptions"\r\n\r\n${file.description}\r\n`;
+      parts.push(new Uint8Array(Array.from(descHeader).map(c => c.charCodeAt(0))));
+    }
 
     // End boundary
     const endBoundary = `--${boundary}--\r\n`;

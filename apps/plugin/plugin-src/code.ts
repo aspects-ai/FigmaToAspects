@@ -96,6 +96,93 @@ const initSettings = async () => {
   // Removed auto-run - user must click Preview or Export
 };
 
+// Debounce timer for screenshot capture
+let screenshotDebounceTimer: number | null = null;
+
+// Capture screenshot of selection and send to UI
+const captureSelectionScreenshot = () => {
+  // Debounce: wait 150ms after last selection change before capturing
+  if (screenshotDebounceTimer !== null) {
+    clearTimeout(screenshotDebounceTimer);
+  }
+
+  screenshotDebounceTimer = setTimeout(async () => {
+    screenshotDebounceTimer = null;
+
+    const selection = figma.currentPage.selection;
+    if (selection.length === 0) {
+      figma.ui.postMessage({
+        type: "screenshot-preview",
+        screenshots: null,
+        size: { width: 0, height: 0 },
+      });
+      return;
+    }
+
+    try {
+      // Calculate bounding box and collect screenshots
+      let totalWidth = 0;
+      let maxHeight = 0;
+
+      const screenshotData: Array<{ base64: string; width: number; height: number }> = [];
+
+      // Export at a reasonable size for preview (max 400px on longest side)
+      // This balances quality with performance
+      const MAX_EXPORT_SIZE = 400;
+
+      for (const node of selection) {
+        if ('exportAsync' in node && 'absoluteBoundingBox' in node && node.absoluteBoundingBox) {
+          const { width, height } = node.absoluteBoundingBox;
+
+          // Use WIDTH or HEIGHT constraint to limit the exported size
+          // This produces better quality than SCALE for large frames
+          const longestSide = Math.max(width, height);
+          const constraint = longestSide > MAX_EXPORT_SIZE
+            ? { type: 'WIDTH' as const, value: width >= height ? MAX_EXPORT_SIZE : Math.round(MAX_EXPORT_SIZE * width / height) }
+            : { type: 'SCALE' as const, value: 1 };
+
+          const imageData = await node.exportAsync({
+            format: 'PNG',
+            constraint,
+          });
+
+          const base64 = figma.base64Encode(imageData);
+          screenshotData.push({
+            base64,
+            width,
+            height,
+          });
+
+          totalWidth += width;
+          maxHeight = Math.max(maxHeight, height);
+        }
+      }
+
+      if (screenshotData.length === 0) {
+        figma.ui.postMessage({
+          type: "screenshot-preview",
+          screenshots: null,
+          size: { width: 0, height: 0 },
+        });
+        return;
+      }
+
+      figma.ui.postMessage({
+        type: "screenshot-preview",
+        screenshots: screenshotData,
+        size: { width: totalWidth, height: maxHeight },
+      });
+    } catch (e) {
+      console.error("[screenshot] Failed to capture:", e);
+      figma.ui.postMessage({
+        type: "screenshot-preview",
+        screenshots: null,
+        size: { width: 0, height: 0 },
+      });
+    }
+  }, 150) as unknown as number;
+};
+
 // Used to prevent running from happening again.
 let isLoading = false;
 const safeRun = async (settings: PluginSettings) => {
@@ -143,26 +230,33 @@ const safeExport = async (settings: PluginSettings) => {
       if (selection.length === 0) {
         throw new Error("No selection to export");
       }
+      if (selection.length > 3) {
+        throw new Error("Please select a maximum of 3 elements to export");
+      }
 
-      const convertedSelection = await nodesToJSON(selection, settings);
-      const code = await convertToCode(convertedSelection, settings);
-
-      // Generate filename with timestamp
+      // Generate timestamp for filenames
       const timestamp = new Date()
         .toISOString()
         .replace(/[:.]/g, "-")
         .slice(0, 19);
-      const filename = `figma-export-${timestamp}.html`;
 
-      // Create file data from HTML code (convert string to Uint8Array for Figma environment)
-      const fileData = stringToUint8Array(code);
+      // Generate code for each selected node
+      const files: Array<{ data: Uint8Array; filename: string; description: string }> = [];
+      for (let i = 0; i < selection.length; i++) {
+        const node = selection[i];
+        const convertedNode = await nodesToJSON([node], settings);
+        const code = await convertToCode(convertedNode, settings);
+        const fileData = stringToUint8Array(code);
+
+        files.push({
+          data: fileData,
+          filename: `figma-export-${timestamp}-${i + 1}.html`,
+          description: `${node.name} - ${timestamp}`,
+        });
+      }
 
       // Upload to backend
-      const uploadedFiles = await backendClient.uploadFile(
-        fileData as any,
-        filename,
-        `Figma export ${timestamp}`
-      );
+      const uploadedFiles = await backendClient.uploadFiles(files);
 
       if (uploadedFiles.length === 0) {
         throw new Error("No file was uploaded");
@@ -221,29 +315,33 @@ const safeGenerateProject = async (
       if (selection.length === 0) {
         throw new Error("No selection to export");
       }
+      if (selection.length > 3) {
+        throw new Error("Please select a maximum of 3 elements to export");
+      }
 
-      // Generate code for each selected node
-      const convertedSelection = await nodesToJSON(selection, settings);
-      const code = await convertToCode(convertedSelection, settings);
-
-      // Generate filename and description with node names and timestamp
+      // Generate timestamp for filenames
       const timestamp = new Date()
         .toISOString()
         .replace(/[:.]/g, "-")
         .slice(0, 19);
-      const nodeNames = selection.map((node) => node.name).join(", ");
-      const filename = `figma-export-${timestamp}.html`;
-      const description = `${nodeNames} - ${timestamp}`;
 
-      // Create file data from HTML code (convert string to Uint8Array for Figma environment)
-      const fileData = stringToUint8Array(code);
+      // Generate code for each selected node
+      const files: Array<{ data: Uint8Array; filename: string; description: string }> = [];
+      for (let i = 0; i < selection.length; i++) {
+        const node = selection[i];
+        const convertedNode = await nodesToJSON([node], settings);
+        const code = await convertToCode(convertedNode, settings);
+        const fileData = stringToUint8Array(code);
+
+        files.push({
+          data: fileData,
+          filename: `figma-export-${timestamp}-${i + 1}.html`,
+          description: `${node.name} - ${timestamp}`,
+        });
+      }
 
       // Upload to backend
-      const uploadedFiles = await backendClient.uploadFile(
-        fileData as any,
-        filename,
-        description
-      );
+      const uploadedFiles = await backendClient.uploadFiles(files);
 
       if (uploadedFiles.length === 0) {
         throw new Error("No file was uploaded");
@@ -419,9 +517,15 @@ const standardMode = async () => {
     type: "selection-state",
     hasSelection: hasInitialSelection,
     selectionName: initialSelectionName,
+    selectionCount: initialSelection.length,
   });
 
-  // Track selection changes but don't auto-convert
+  // Capture initial screenshot if there's a selection
+  if (hasInitialSelection) {
+    captureSelectionScreenshot();
+  }
+
+  // Track selection changes and auto-capture screenshot
   figma.on("selectionchange", () => {
     const selection = figma.currentPage.selection;
     const hasSelection = selection.length > 0;
@@ -431,7 +535,11 @@ const standardMode = async () => {
       type: "selection-state",
       hasSelection: hasSelection,
       selectionName: selectionName,
+      selectionCount: selection.length,
     });
+
+    // Auto-capture screenshot when selection changes
+    captureSelectionScreenshot();
   });
 
   // Removed documentchange listener - no longer needed without auto-conversion

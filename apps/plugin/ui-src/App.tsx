@@ -23,6 +23,8 @@ import {
   ProjectGenerationErrorMessage,
   ProjectGenerationProgressMessage,
   ProjectGenerationSuccessMessage,
+  ScreenshotData,
+  ScreenshotPreviewMessage,
   SelectionStateMessage,
   SettingsChangedMessage,
   SolidColorConversion,
@@ -44,7 +46,9 @@ interface AppState {
   isExporting: boolean;
   exportSuccess: boolean;
   hasSelection: boolean;
+  selectionCount: number;
   htmlPreview: HTMLPreview;
+  screenshotPreviews: ScreenshotData[] | null;
   settings: PluginSettings | null;
   colors: SolidColorConversion[];
   gradients: LinearGradientConversion[];
@@ -72,7 +76,9 @@ export default function App() {
     isExporting: false,
     exportSuccess: false,
     hasSelection: false,
+    selectionCount: 0,
     htmlPreview: emptyPreview,
+    screenshotPreviews: null,
     settings: null,
     colors: [],
     gradients: [],
@@ -182,8 +188,17 @@ export default function App() {
           setState((prevState) => ({
             ...prevState,
             hasSelection: selectionMessage.hasSelection,
+            selectionCount: selectionMessage.selectionCount || 0,
             defaultProjectName: selectionMessage.selectionName || "New Project",
             exportSuccess: false, // Clear success state when selection changes
+          }));
+          break;
+
+        case "screenshot-preview":
+          const screenshotMessage = untypedMessage as ScreenshotPreviewMessage;
+          setState((prevState) => ({
+            ...prevState,
+            screenshotPreviews: screenshotMessage.screenshots,
           }));
           break;
 
@@ -479,10 +494,12 @@ export default function App() {
         setSelectedFramework={handleFrameworkChange}
         onPreferenceChanged={handlePreferencesChange}
         htmlPreview={state.htmlPreview}
+        screenshotPreviews={state.screenshotPreviews}
         settings={state.settings}
         colors={state.colors}
         gradients={state.gradients}
         hasSelection={state.hasSelection}
+        selectionCount={state.selectionCount}
         onPreviewRequest={handlePreview}
         onExportRequest={handleExport}
         onPromptSubmit={handlePromptSubmit}

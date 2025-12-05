@@ -1,24 +1,39 @@
 #!/usr/bin/env node
 
 /**
- * Injects ALLOWED_DOMAINS from .env.local into manifest.json
- * Run before dev builds to configure network access dynamically
+ * Generates manifest.json from template with environment-specific configuration
+ * - Injects ALLOWED_DOMAINS for network access
+ * - Sets plugin name based on environment (dev vs prod)
+ *
+ * Usage:
+ *   node inject-dev-domains.js           # Dev mode (uses .env.local, adds "(Development)" suffix)
+ *   node inject-dev-domains.js --prod    # Prod mode (uses .env.production, no suffix)
  */
 
 const fs = require('fs');
 const path = require('path');
 
+// Check for --prod flag
+const isProd = process.argv.includes('--prod');
+
 // Paths relative to project root
 const PROJECT_ROOT = path.resolve(__dirname, '..');
-const ENV_FILE = path.join(PROJECT_ROOT, '.env.local');
+const ENV_FILE = path.join(PROJECT_ROOT, isProd ? '.env.production' : '.env.local');
 const TEMPLATE_FILE = path.join(PROJECT_ROOT, 'manifest.template.json');
 const MANIFEST_FILE = path.join(PROJECT_ROOT, 'manifest.json');
 
-// Parse .env.local file
+// Plugin names
+const PLUGIN_NAME_PROD = 'Figma to Aspects';
+const PLUGIN_NAME_DEV = 'Figma to Aspects (Development)';
+
+// Parse env file
 function parseEnvFile(filePath) {
   if (!fs.existsSync(filePath)) {
-    console.error('❌ Error: .env.local not found');
-    console.log('Create .env.local from .env.local.example and configure ALLOWED_DOMAINS');
+    const fileName = path.basename(filePath);
+    console.error(`❌ Error: ${fileName} not found`);
+    if (!isProd) {
+      console.log('Create .env.local from .env.local.example and configure ALLOWED_DOMAINS');
+    }
     process.exit(1);
   }
 
@@ -41,7 +56,13 @@ function parseEnvFile(filePath) {
 
 // Main execution
 try {
-  console.log('🔧 Generating manifest.json from template...\n');
+  const mode = isProd ? 'production' : 'development';
+  const pluginName = isProd ? PLUGIN_NAME_PROD : PLUGIN_NAME_DEV;
+  const envFileName = path.basename(ENV_FILE);
+
+  console.log(`🔧 Generating manifest.json for ${mode}...`);
+  console.log(`   Using: ${envFileName}`);
+  console.log(`   Plugin name: "${pluginName}"\n`);
 
   // Check template exists
   if (!fs.existsSync(TEMPLATE_FILE)) {
@@ -49,7 +70,7 @@ try {
     process.exit(1);
   }
 
-  // Parse .env.local
+  // Parse env file
   const env = parseEnvFile(ENV_FILE);
   const domainsStr = env.ALLOWED_DOMAINS || '';
   const devDomainsStr = env.DEV_ALLOWED_DOMAINS || '';
@@ -63,9 +84,9 @@ try {
       .filter(d => d.length > 0);
 
     console.log('✓ Found allowed dev domains:', devDomains.join(', '));
-  } else {
-    console.log('⚠️  Warning: DEV_ALLOWED_DOMAINS not set in .env.local');
-    console.log('   Network requests will be blocked in dev mode\n');
+  } else if (!isProd) {
+    console.log('⚠️  Warning: DEV_ALLOWED_DOMAINS not set');
+    console.log('   Network requests may be blocked in dev mode\n');
   }
 
   let domains = [];
@@ -77,13 +98,17 @@ try {
 
     console.log('✓ Found allowed domains:', domains.join(', '));
   } else {
-    console.log('⚠️  Warning: ALLOWED_DOMAINS not set in .env.local');
-    console.log('   Network requests will be blocked in dev mode\n');
+    console.log('⚠️  Warning: ALLOWED_DOMAINS not set');
+    console.log('   Network requests will be blocked\n');
   }
 
-  // Read template and inject dev domains
+  // Read template and inject values
   const manifest = JSON.parse(fs.readFileSync(TEMPLATE_FILE, 'utf-8'));
 
+  // Set plugin name
+  manifest.name = pluginName;
+
+  // Set network access
   if (!manifest.networkAccess) {
     manifest.networkAccess = {};
   }
@@ -94,7 +119,7 @@ try {
   // Write generated manifest
   fs.writeFileSync(MANIFEST_FILE, JSON.stringify(manifest, null, 2) + '\n');
 
-  console.log('✅ Generated manifest.json with allowedDomains\n');
+  console.log(`\n✅ Generated manifest.json for ${mode}\n`);
 } catch (error) {
   console.error('❌ Error:', error.message);
   process.exit(1);

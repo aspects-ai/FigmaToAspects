@@ -7,6 +7,7 @@ import {
   HTMLPreview,
   LinearGradientConversion,
   PluginSettings,
+  ScreenshotData,
   SolidColorConversion,
   Warning,
 } from "types";
@@ -26,6 +27,7 @@ import WarningsPanel from "./components/WarningsPanel";
 type PluginUIProps = {
   code: string;
   htmlPreview: HTMLPreview;
+  screenshotPreviews: ScreenshotData[] | null;
   warnings: Warning[];
   selectedFramework: Framework;
   setSelectedFramework: (framework: Framework) => void;
@@ -38,6 +40,7 @@ type PluginUIProps = {
   gradients: LinearGradientConversion[];
   isLoading: boolean;
   hasSelection: boolean;
+  selectionCount: number;
   onPreviewRequest: () => void;
   onExportRequest: () => void;
   onPromptSubmit: (projectName: string, prompt: string) => void;
@@ -125,6 +128,7 @@ export const PluginUI = (props: PluginUIProps) => {
               settings={props.settings}
               onPreferenceChanged={props.onPreferenceChanged}
               hasSelection={props.hasSelection}
+              selectionCount={props.selectionCount}
               onPreviewRequest={props.onPreviewRequest}
               onExportRequest={props.onExportRequest}
               onPromptSubmit={props.onPromptSubmit}
@@ -133,6 +137,7 @@ export const PluginUI = (props: PluginUIProps) => {
               isExporting={props.isExporting}
               exportSuccess={props.exportSuccess}
               htmlPreview={props.htmlPreview}
+              screenshotPreviews={props.screenshotPreviews}
               previewExpanded={previewExpanded}
               setPreviewExpanded={setPreviewExpanded}
               previewViewMode={previewViewMode}

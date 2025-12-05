@@ -1,5 +1,5 @@
 {
-  "name": "Figma to Aspects",
+  "name": "{{PLUGIN_NAME}}",
   "id": "1573793526647744572",
   "api": "1.0.0",
   "main": "apps/plugin/dist/code.js",
