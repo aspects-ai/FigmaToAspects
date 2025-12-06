@@ -92,32 +92,35 @@ export class AspectsBackendClient {
     const boundary = `----WebKitFormBoundary${Math.random().toString(36).substring(2)}`;
 
     // Build the multipart body manually
-    const parts: Uint8Array[] = [];
-    const CRLF = new Uint8Array([13, 10]); // \r\n
+    // Format for each part: --boundary\r\nheaders\r\n\r\ncontent\r\n
+    const textEncoder = (str: string) => new Uint8Array(Array.from(str).map(c => c.charCodeAt(0)));
+    const CRLF = textEncoder('\r\n');
 
-    // Add each file field
+    const bodyParts: Uint8Array[] = [];
+
+    // Add each file
     for (const file of files) {
-      const fileHeader = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${file.filename}"\r\nContent-Type: text/html\r\n\r\n`;
-      parts.push(new Uint8Array(Array.from(fileHeader).map(c => c.charCodeAt(0))));
-      parts.push(file.data);
-      parts.push(CRLF);
+      const header = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${file.filename}"\r\nContent-Type: text/html\r\n\r\n`;
+      bodyParts.push(textEncoder(header));
+      bodyParts.push(file.data);
+      bodyParts.push(CRLF);
     }
 
-    // Add each description field (must match the number of files)
-    for (const file of files) {
-      const descHeader = `--${boundary}\r\nContent-Disposition: form-data; name="descriptions"\r\n\r\n${file.description}\r\n`;
-      parts.push(new Uint8Array(Array.from(descHeader).map(c => c.charCodeAt(0))));
-    }
+    // Add descriptions as a single CSV-joined field (API expects comma-separated values)
+    const allDescriptions = files.map(f => f.description).join(',');
+    const descHeader = `--${boundary}\r\nContent-Disposition: form-data; name="descriptions"\r\n\r\n`;
+    bodyParts.push(textEncoder(descHeader));
+    bodyParts.push(textEncoder(allDescriptions));
+    bodyParts.push(CRLF);
 
     // End boundary
-    const endBoundary = `--${boundary}--\r\n`;
-    parts.push(new Uint8Array(Array.from(endBoundary).map(c => c.charCodeAt(0))));
+    bodyParts.push(textEncoder(`--${boundary}--\r\n`));
 
     // Combine all parts
-    const totalLength = parts.reduce((sum, part) => sum + part.length, 0);
+    const totalLength = bodyParts.reduce((sum, part) => sum + part.length, 0);
     const body = new Uint8Array(totalLength);
     let offset = 0;
-    for (const part of parts) {
+    for (const part of bodyParts) {
       body.set(part, offset);
       offset += part.length;
     }
